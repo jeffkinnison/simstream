@@ -6,7 +6,7 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 
 
 class DataCollector(object):
-    def __init__(self, name, callback, postprocessor=None, *args):
+    def __init__(self, name, limit=250, callback, postprocessor=None, *args):
         self.name = name if name else "Unknown Resource"
         self._callback = callback
         self._callback_args = args
@@ -23,5 +23,5 @@ class DataCollector(object):
             print("Error: ", e)
 
     @property
-    def data(self, start, end):
+    def data(self, start=0, end=-1):
         return self._data[start:end]
