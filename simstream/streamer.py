@@ -4,8 +4,6 @@ Streaming utility for system and simulation data.
 author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
-from . import datareporter
-
 import tornado.ioloop
 import tornado.web
 

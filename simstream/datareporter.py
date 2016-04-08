@@ -9,7 +9,7 @@ from . import datacollector
 
 
 class DataReporter(object):
-    """Collect and distribute user-specified system data."""
+    """Manages data collection at a specified interval"""
 
     def __init__(self, interval=1000, **kwargs):
         self.interval = interval
@@ -23,8 +23,10 @@ class DataReporter(object):
             )
 
     def __getitem__(self, name):
+        """Return the data from the collector specified by name"""
         return self.resources[name].data
 
     def _record_resources(self, resource, value):
+        """Run all collectors"""
         for key, value in self.resources:
             value()
