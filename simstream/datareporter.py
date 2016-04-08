@@ -4,7 +4,8 @@ Utilties for collecting system data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
-import psutil
+
+from . import datacollector
 
 
 class DataReporter(object):
@@ -14,10 +15,12 @@ class DataReporter(object):
         self.interval = interval
         self.resources = {}
         for key, value in kwargs:
-            self.resources[key] = ResourceCollector(key,
-                                                    value.callback,
-                                                    value.postprocessor,
-                                                    value.args)
+            self.resources[key] = datacollector.DataCollector(
+                key,
+                value.callback,
+                value.postprocessor,
+                value.args
+            )
 
     def __getitem__(self, name):
         return self.resources[name].data
