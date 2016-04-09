@@ -21,7 +21,7 @@ class CollectorDoesNotExistException(Exception):
 class DataReporter(object):
     """Manages data collection at a specified interval"""
 
-    def __init__(self, interval=1000, collectors={}):
+    def __init__(self, interval=10, collectors={}):
         self.interval = interval
         self.collectors = {}
         for key, value in collectors:
