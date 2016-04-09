@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8" />
+    <title>RSS Memory Reporting Test</title>
+
+</head>
+
+<body>
+
+    <h1>Maximum Resident Set of the Server</h1>
+    <ul>
+        {% for point in data %}
+            {% block point %}
+            <li>{{ escape(point) }}</li>
+            {% end %}
+        {% end %}
+    </ul>
+
+</body>
+
+</html>
