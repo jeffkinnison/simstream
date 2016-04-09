@@ -24,13 +24,13 @@ class DataReporter(object):
             )
 
     def run(self):
+        """Collect data asynchronously at the specified interval."""
         self._collection_event = threading.Event()
         while not self._collection_event.wait(timeout=self.interval):
             self._record_resources()
 
-
-
     def stop(self):
+        """Stop the data collection process"""
         self._collection_event.set()
 
     def __getitem__(self, name):
