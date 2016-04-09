@@ -1,2 +1,6 @@
 .DS_Store
 *.pyc
+build/*
+dist/*
+simstream.egg-info/*
+simstream/__pycache__/*
