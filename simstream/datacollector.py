@@ -19,6 +19,7 @@ class DataCollector(Thread):
         self._postprocessor = postprocessor
         self._data = []
         self.data_lock = Lock()
+        self._active = True
 
     def run(self):
         """Run the callback and postprocessing subroutines and record result."""
@@ -36,13 +37,17 @@ class DataCollector(Thread):
         except Exception as e:
             print("Error: ", e)
 
+    def deactivate(self):
+        self._active = False
+
     def __call__(self):
         """Run the data collection in parallel."""
-        self.start()
+        if self.active:
+            self.start()
 
     @property
     def data(self, start=0, end=-1):
-        Lock.acquire()
+        self.data_lock.acquire()
         data = self._data[start:end]
-        Lock.release()
+        self.data_lock.release()
         return data

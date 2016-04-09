@@ -5,23 +5,56 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
 import threading
+from exception import Exception
 
-from . import datacollector
+from .datacollector import DataCollector
+
+
+class CollectorExistsException(Exception):
+    pass
+
+
+class CollectorDoesNotExistException(Exception):
+    pass
 
 
 class DataReporter(object):
     """Manages data collection at a specified interval"""
 
-    def __init__(self, interval=1000, **kwargs):
+    def __init__(self, interval=1000, collectors={}):
         self.interval = interval
         self.collectors = {}
-        for key, value in kwargs:
-            self.collectors[key] = datacollector.DataCollector(
+        for key, value in collectors:
+            self.add_collector(
                 key,
+                value.limit,
                 value.callback,
                 value.postprocessor,
-                value.args
+                value.callback_args,
+                value.postprocessor_args
             )
+
+    def add_collector(self, name, limit, callback, postprocessor=None,
+                      callback_args=[], postprocessor_args=[]):
+        """Add a new collector, raise an exception if a name conflict occurs."""
+        if name in self.collectors:
+            raise CollectorExistsException
+
+        self.collectors[name] = datacollector.DataCollector(
+            name,
+            limit,
+            callback,
+            postprocessor,
+            callback_args,
+            postprocessor_args
+        )
+
+    def stop_collector(self, name):
+        """Deactivate the specified collector."""
+        if name not in self.collectors:
+            raise CollectorDoesNotExistException
+
+        self.collectors[name].deactivate()
 
     def run(self):
         """Collect data asynchronously at the specified interval."""
