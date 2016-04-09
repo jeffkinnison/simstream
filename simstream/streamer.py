@@ -4,7 +4,6 @@ Streaming utility for system and simulation data.
 author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
-import tornado.ioloop
 import tornado.web
 
 
@@ -20,15 +19,20 @@ class Streamer(tornado.web.Application):
             **settings
         )
 
+    def start_collecting(self):
+        for handler in self.handlers:
+            handler.run_reporter()
+
 
 class ReporterHandler(tornado.web.RequestHandler):
     """ """
 
-    def initialize(self, reporters, template):
+    def initialize(self, reporter, template):
         self.template = template
-        self.reporters = {}
-        for reporter in reporters:
-            self.reporters[reporter.name] = reporter
+        self.reporter = reporter
+
+    def run_reporter(self):
+        self.reporter.run()
 
     def get(self, name, range):
         render(self.template)

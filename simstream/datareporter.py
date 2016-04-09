@@ -5,7 +5,7 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
 import threading
-from exception import Exception
+#from exception import Exception
 
 from .datacollector import DataCollector
 

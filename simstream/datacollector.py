@@ -9,7 +9,7 @@ from threading import Thread, Lock
 
 class DataCollector(Thread):
     """Collects data by running user-specified routines"""
-    def __init__(self, name, limit=250, callback, postprocessor=None,
+    def __init__(self, name, callback, limit=250, postprocessor=None,
                  callback_args=[], postprocessor_args=[]):
         super(DataCollector, self).__init__()
         self.name = name if name else "Unknown Resource"
