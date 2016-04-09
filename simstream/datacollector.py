@@ -15,8 +15,9 @@ class DataCollector(Thread):
         self.name = name if name else "Unknown Resource"
         self.limit = limit
         self._callback = callback
-        self._callback_args = args
+        self._callback_args = callback_args
         self._postprocessor = postprocessor
+        self._postprocessor_args = postprocessor_args
         self._data = []
         self.data_lock = Lock()
         self._active = True

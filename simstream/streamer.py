@@ -27,7 +27,7 @@ class Streamer(tornado.web.Application):
 class ReporterHandler(tornado.web.RequestHandler):
     """ """
 
-    def initialize(self, reporter, template):
+    def initialize(self, reporter=None, template=None):
         self.template = template
         self.reporter = reporter
 

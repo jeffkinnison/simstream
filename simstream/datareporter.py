@@ -40,7 +40,7 @@ class DataReporter(object):
         if name in self.collectors:
             raise CollectorExistsException
 
-        self.collectors[name] = datacollector.DataCollector(
+        self.collectors[name] = DataCollector(
             name,
             limit,
             callback,
