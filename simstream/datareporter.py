@@ -49,7 +49,7 @@ class DataReporter(Thread):
                 value.postprocessor_args
             )
 
-    def add_collector(self, name, callback, limit=100, postprocessor=None,
+    def add_collector(self, name, callback, limit=250, postprocessor=None,
                       callback_args=[], postprocessor_args=[]):
         """Add a new collector.
 
