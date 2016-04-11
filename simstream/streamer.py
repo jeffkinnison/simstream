@@ -10,7 +10,7 @@ import tornado.web
 class Streamer(tornado.web.Application):
     """ """
 
-    def __init__(self, handlers=None, default_host='',
+    def __init__(self, reporters, handlers=None, default_host='',
                  transforms=None, **settings):
         super(Streamer, self).__init__(
             handlers,
@@ -18,14 +18,11 @@ class Streamer(tornado.web.Application):
             transforms,
             **settings
         )
+        self.reporters = reporters
 
     def start_collecting(self):
-        for handler in self.handlers:
-            try:
-                print("Running a handler")
-                handler.run_reporter()
-            except AttributeError:
-                pass
+        for reporter in self.reporters:
+            reporter.start()
 
 
 class ReporterHandler(tornado.web.RequestHandler):

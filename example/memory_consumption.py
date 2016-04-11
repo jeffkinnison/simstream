@@ -50,11 +50,12 @@ if __name__ == "__main__":
                                postprocessor=mem_postprocessor
                                )
     print("Setting up Streamer instance...")
-    mem_streamer = Streamer(handlers=[
-        (r"/mem/([a-zA-Z\-0-9\.:,_]+)/[\d]+\-[\d]+$",
-            ReporterHandler, dict(reporter=mem_reporter,
-                                  template=mem_template))
-    ])
+    mem_streamer = Streamer(
+        reporters=[mem_reporter],
+        handlers=[(r"/mem/([a-zA-Z\-0-9\.:,_]+)/[\d]+\-[\d]+$",
+                   ReporterHandler, dict(reporter=mem_reporter,
+                                         template=mem_template))]
+    )
 
     print("Starting data collection...")
     mem_streamer.start_collecting()

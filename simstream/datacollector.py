@@ -7,7 +7,7 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 from threading import Thread, Lock
 
 
-class DataCollector(Thread):
+class DataCollector(object):
     """Collects data by running user-specified routines"""
     def __init__(self, name, callback, limit=250, postprocessor=None,
                  callback_args=[], postprocessor_args=[]):
@@ -25,7 +25,7 @@ class DataCollector(Thread):
     def run(self):
         """Run the callback and postprocessing subroutines and record result."""
         try:
-            result = _callback(*self._callback_args)
+            result = self._callback(*self._callback_args)
             result = self._postprocessor(result) if self._postprocessor else result
             print("Found the value ", result, " in ", self.name)
             self.data_lock.acquire()
@@ -44,7 +44,7 @@ class DataCollector(Thread):
     def __call__(self):
         """Run the data collection in parallel."""
         if self.active:
-            self.start()
+            self.run()
 
     @property
     def data(self, start=0, end=-1):
@@ -52,3 +52,7 @@ class DataCollector(Thread):
         data = self._data[start:end]
         self.data_lock.release()
         return data
+
+    @property
+    def active(self):
+        return self._active
