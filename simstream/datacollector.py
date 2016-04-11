@@ -53,7 +53,7 @@ class DataCollector(object):
         """
         try:
             result = self._callback(*self._callback_args)# if len(self._callback_args) > 0 else self._callback()
-            result = self._postprocessor(result) if self._postprocessor else result
+            #result = self._postprocessor(result) if self._postprocessor else result
             print("Found the value ", result, " in ", self.name)
             self._data_lock.acquire()
             self._data.append(result)
