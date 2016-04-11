@@ -14,4 +14,4 @@ The example runs a simple collector that records the maximum memory used by the 
 
 1. From the repository root, run `python example/memory_consumption.py`
 2. Open a browser
-3. Navigate to http://localhost:8888/viewmem/ to view the plot
+3. Navigate to <http://localhost:8888/viewmem/> to view the plot
