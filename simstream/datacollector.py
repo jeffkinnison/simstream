@@ -46,10 +46,16 @@ class DataCollector(object):
             self.run()
 
     @property
-    def data(self, start=0, end=-1):
-        self.data_lock.acquire()
-        data = self._data[start:end]
-        self.data_lock.release()
+    def data(self, start=None, end=None):
+        data = []
+        if start is None and end is None:
+            self.data_lock.acquire()
+            data = self._data
+            self.data_lock.release()
+        else:
+            self.data_lock.acquire()
+            data = self._data[start:end]
+            self.data_lock.release()
         return data
 
     @property

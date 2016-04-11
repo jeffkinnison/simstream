@@ -4,6 +4,7 @@ Streaming utility for system and simulation data.
 author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
+import json
 import tornado.web
 
 
@@ -32,6 +33,11 @@ class ReporterHandler(tornado.web.RequestHandler):
         self.template = template
         self.reporter = reporter
 
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "*")
+        self.set_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+
     def run_reporter(self):
         print("Running reporter")
         self.reporter.run()
@@ -40,5 +46,5 @@ class ReporterHandler(tornado.web.RequestHandler):
         #self.reporter.join()
         data = self.reporter[name]
         #self.reporter.start()
-        data = map(lambda x: str(x), data)
-        self.finish(self.template.generate(data=data))
+        #data = map(lambda x: str(x), data)
+        self.write(json.dumps(data))
