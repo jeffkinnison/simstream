@@ -11,7 +11,7 @@ import tornado.web
 class Streamer(tornado.web.Application):
     """Server that manages background data collection.
 
-    Inherits from tornado.web.application with no behavior modification.
+    Inherits from tornado.web.application without modifying behavior.
 
     Instance variables:
     reporters -- a list of DataReporter objects managed by the Streamer
@@ -49,24 +49,28 @@ class Streamer(tornado.web.Application):
 
 
 class ReporterHandler(tornado.web.RequestHandler):
-    """ """
+    """Handles retrieving and distributing data from reporters.
+
+    Inherits from tornado.web.RequestHandler without modifying underlying
+    behavior.
+
+    Instance variables:
+    reporter -- the DataReporter instance from which to retrieve data on get()
+    template -- the Tornado template to render on get()
+    """
 
     def initialize(self, reporter=None, template=None):
+        """Called internally by tornado to init a custom WebHandler."""
         self.template = template
         self.reporter = reporter
 
     def set_default_headers(self):
+        """Called internally by tornado to modify HTTP response headers."""
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "*")
         self.set_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
 
-    def run_reporter(self):
-        print("Running reporter")
-        self.reporter.run()
-
     def get(self, name, range=None):
-        #self.reporter.join()
+        """Distribute all data from reporter."""
         data = self.reporter[name]
-        #self.reporter.start()
-        #data = map(lambda x: str(x), data)
         self.write(json.dumps(data))
