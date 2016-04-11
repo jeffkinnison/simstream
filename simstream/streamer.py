@@ -37,5 +37,8 @@ class ReporterHandler(tornado.web.RequestHandler):
         self.reporter.run()
 
     def get(self, name, range=None):
-        data = map(lambda x: str(x), self.reporter[name])
+        #self.reporter.join()
+        data = self.reporter[name]
+        #self.reporter.start()
+        data = map(lambda x: str(x), data)
         self.finish(self.template.generate(data=data))

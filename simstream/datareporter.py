@@ -65,7 +65,7 @@ class DataReporter(Thread):
             print("Collecting")
             self._record_resources()
 
-    def stop(self):
+    def join(self):
         """Stop the data collection process"""
         try:
             self._collection_event.set()
@@ -76,11 +76,11 @@ class DataReporter(Thread):
         """Return the data from the collector specified by name"""
         if name not in self.collectors:
             raise CollectorDoesNotExistException
-        if self.collectors[name].active:
-            self.collectors[name].join()
         return self.collectors[name].data
 
     def _record_resources(self):
         """Run all collectors"""
         for key in self.collectors:
-            self.collectors[key]()
+            if callable(self.collectors[key]):
+                print("Running ", key)
+                self.collectors[key]()

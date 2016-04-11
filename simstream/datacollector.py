@@ -25,15 +25,14 @@ class DataCollector(object):
     def run(self):
         """Run the callback and postprocessing subroutines and record result."""
         try:
-            result = self._callback(*self._callback_args)
-            result = self._postprocessor(result) if self._postprocessor else result
+            result = self._callback(*self._callback_args) if len(self._callback_args) > 0 else self._callback()
+            #result = self._postprocessor(result) if self._postprocessor else result
             print("Found the value ", result, " in ", self.name)
             self.data_lock.acquire()
-            self.data.append(result)
+            self._data.append(result)
+            if len(self._data) > self.limit:
+                self._data.pop(0)
             self.data_lock.release()
-
-            if len(data) > self.limit:
-                data.pop(0)
 
         except Exception as e:
             print("Error: ", e)
@@ -43,7 +42,7 @@ class DataCollector(object):
 
     def __call__(self):
         """Run the data collection in parallel."""
-        if self.active:
+        if self._active:
             self.run()
 
     @property

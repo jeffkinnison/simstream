@@ -45,8 +45,8 @@ if __name__ == "__main__":
 
     print("Adding RSS collector to the reporter...")
     mem_reporter.add_collector("rss",
-                               100,
                                mem_callback,
+                               100,
                                postprocessor=mem_postprocessor
                                )
     print("Setting up Streamer instance...")
