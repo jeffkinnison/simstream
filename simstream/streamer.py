@@ -9,10 +9,31 @@ import tornado.web
 
 
 class Streamer(tornado.web.Application):
-    """ """
+    """Server that manages background data collection.
+
+    Inherits from tornado.web.application with no behavior modification.
+
+    Instance variables:
+    reporters -- a list of DataReporter objects managed by the Streamer
+
+    Public methods:
+    start_collecting -- initiate data collection for all managed reporters
+    """
 
     def __init__(self, reporters, handlers=None, default_host='',
                  transforms=None, **settings):
+        """Initialize a new Streamer.
+
+        Arguments:
+        reporters -- a list of DataReporters that will run in parallel with
+                     the server
+
+        Keyword arguments:
+        handlers -- standard tornado.web.Application argument (default None)
+        default_host -- standard tornado.web.Application argument (default '')
+        transforms -- standard tornado.web.Application argument (default None)
+        standard tornado.web.Application argument (default None)
+        """
         super(Streamer, self).__init__(
             handlers,
             default_host,
@@ -22,6 +43,7 @@ class Streamer(tornado.web.Application):
         self.reporters = reporters
 
     def start_collecting(self):
+        """Tell all reporters to start collecting data"""
         for reporter in self.reporters:
             reporter.start()
 
