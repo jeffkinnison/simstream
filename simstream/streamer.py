@@ -21,7 +21,11 @@ class Streamer(tornado.web.Application):
 
     def start_collecting(self):
         for handler in self.handlers:
-            handler.run_reporter()
+            try:
+                print("Running a handler")
+                handler.run_reporter()
+            except AttributeError:
+                pass
 
 
 class ReporterHandler(tornado.web.RequestHandler):
@@ -32,7 +36,9 @@ class ReporterHandler(tornado.web.RequestHandler):
         self.reporter = reporter
 
     def run_reporter(self):
+        print("Running reporter")
         self.reporter.run()
 
-    def get(self, name, range):
-        render(self.template)
+    def get(self, name, range=None):
+        data = map(lambda x: str(x), self.reporter[name])
+        self.finish(self.template.generate(data=data))

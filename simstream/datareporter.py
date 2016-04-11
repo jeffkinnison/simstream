@@ -58,19 +58,24 @@ class DataReporter(object):
 
     def run(self):
         """Collect data asynchronously at the specified interval."""
+        print("Running the collectors in ", self.name)
         self._collection_event = threading.Event()
         while not self._collection_event.wait(timeout=self.interval):
+            print("Collecting from ", self.name)
             self._record_resources()
 
     def stop(self):
         """Stop the data collection process"""
-        self._collection_event.set()
+        try:
+            self._collection_event.set()
+        except AttributeError:
+            print("No collection event in ", self.name)
 
     def __getitem__(self, name):
         """Return the data from the collector specified by name"""
-        return self.resources[name].data
+        return self.collectors[name].data
 
     def _record_resources(self):
         """Run all collectors"""
-        for key, value in self.resources:
+        for key, value in self.collectors:
             value()

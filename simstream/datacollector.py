@@ -27,7 +27,7 @@ class DataCollector(Thread):
         try:
             result = _callback(*self._callback_args)
             result = self._postprocessor(result) if self._postprocessor else result
-
+            print("Found the value ", result, " in ", self.name)
             self.data_lock.acquire()
             self.data.append(result)
             self.data_lock.release()
