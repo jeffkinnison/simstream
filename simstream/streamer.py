@@ -9,15 +9,17 @@ import pika
 
 class Streamer(object):
     """
-    A primary entry point for routing incoming messages to the proper handler.
+    The primary entry point for routing incoming messages to the proper handler.
     """
 
-    def __init__(self, rabbitmq_url):
+    def __init__(self, rabbitmq_url, exchange_name, queue_name):
         self._connection = None
         self._channel = None
         self._closing = None
         self._consumer_tag = None
         self._url = rabbitmq_url
+        self._exchange = exchange_name
+        self._queue = queue_name
 
     def connect(self):
         """
@@ -26,6 +28,11 @@ class Streamer(object):
         return pika.SelectConnection(pika.URLParameters(self._url).
                                      self.on_connection_open,
                                      stop_ioloop_on_close=False)
+
+    def start(self):
+        self._connection = self.connect()
+        self._connection.ioloop.start()
+
 
 #import tornado.web
 
