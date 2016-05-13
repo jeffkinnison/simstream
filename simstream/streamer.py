@@ -35,21 +35,51 @@ class Streamer(object):
         self._exchange = exchange_name
         self._exchange_type = exchange_type
         self._queue = queue_name
-        self._routing_keys = routing_keys or []
+        self._routing_keys = routing_keys
 
     def connect(self):
         """
         Create an asynchronous connection to the RabbitMQ server at URL.
         """
         return pika.SelectConnection(pika.URLParameters(self._url).
-                                     self.on_connection_open,
+                                     on_open_callback=self.on_connection_open,
+                                     on_close_callback=self.on_conection_close,
                                      stop_ioloop_on_close=False)
 
+    def on_connection_open(self, unused_connection):
+        """
+        Actions to perform when the connection opens. This may not happen
+        immediately, so defer action to this callback.
+
+        Arguments:
+        unused_connection -- the created connection (by this point already
+                             available as self._connection)
+        """
+        self._connection.channel(on_open_callback=self.on_channel_open)
+
+    def on_connection_close(self, connection, code, text):
+        """
+        Actions to perform when the connection is unexpectedly closed by the
+        RabbitMQ server.
+
+        Arguments:
+        connection -- the connection that was closed (same as self._connection)
+        code -- response code from the RabbitMQ server
+        text -- response body from the RabbitMQ server
+        """
+        pass
+
     def start(self):
+        """
+        Start a connection with the RabbitMQ server.
+        """
         self._connection = self.connect()
         self._connection.ioloop.start()
 
     def stop(self):
+        """
+        Stop an active connection with the RabbitMQ server.
+        """
         self._connection.ioloop.stop()
 
 
