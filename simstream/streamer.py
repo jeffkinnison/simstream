@@ -69,6 +69,45 @@ class Streamer(object):
         """
         pass
 
+    def open_new_channel(self):
+        """
+        Run the Channel.Open RPC and provide a callback to run on success.
+        """
+        pass
+
+    def on_channel_open(self, channel):
+        """
+        Store the opened channel for future use and set up the exchange and
+        queue to be used.
+
+        Arguments:
+        channel -- the Channel instance opened by the Channel.Open RPC
+        """
+        pass
+
+    def on_channel_close(self, channel, code, text):
+        """
+        Actions to perform when the channel is unexpectedly closed by the
+        RabbitMQ server.
+
+        Arguments:
+        connection -- the connection that was closed (same as self._connection)
+        code -- response code from the RabbitMQ server
+        text -- response body from the RabbitMQ server
+        """
+        pass
+
+    def declare_exchange(self, name):
+        """
+        Set up the exchange that will route messages to this consumer. Each
+        RabbitMQ exchange is uniquely identified by its name, so it does not
+        matter if the exchange has already been declared.
+
+        Arguments:
+        name -- the name of the exchange to set up
+        """
+        pass
+
     def start(self):
         """
         Start a connection with the RabbitMQ server.
