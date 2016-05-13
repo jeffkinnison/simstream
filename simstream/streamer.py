@@ -12,14 +12,30 @@ class Streamer(object):
     The primary entry point for routing incoming messages to the proper handler.
     """
 
-    def __init__(self, rabbitmq_url, exchange_name, queue_name):
+    def __init__(self, rabbitmq_url, exchange_name, queue_name,
+                 exchange_type=direct, routing_keys=["#"]):
+        """
+        Create a new instance of Streamer.
+
+        Arguments:
+        rabbitmq_url -- URL to RabbitMQ server
+        exchange_name -- name of RabbitMQ exchange to join
+        queue_name -- name of RabbitMQ queue to join
+        """
         self._connection = None
         self._channel = None
         self._closing = None
         self._consumer_tag = None
         self._url = rabbitmq_url
+
+        # The following are necessary to guarantee that both the RabbitMQ
+        # server and Streamer know where to look for messages. These names will
+        # be decided before dispatch and should be recorded in a config file or
+        # else on a per-job basis.
         self._exchange = exchange_name
+        self._exchange_type = exchange_type
         self._queue = queue_name
+        self._routing_keys = routing_keys or []
 
     def connect(self):
         """
@@ -32,6 +48,9 @@ class Streamer(object):
     def start(self):
         self._connection = self.connect()
         self._connection.ioloop.start()
+
+    def stop(self):
+        self._connection.ioloop.stop()
 
 
 #import tornado.web
