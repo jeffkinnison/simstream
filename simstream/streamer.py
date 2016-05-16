@@ -7,7 +7,7 @@ author: Jeff Kinnison (jkinniso@nd.edu)
 import json
 import pika
 
-class Streamer(object):
+class PikaAsyncConsumer(object):
     """
     The primary entry point for routing incoming messages to the proper handler.
     """
@@ -97,14 +97,25 @@ class Streamer(object):
         """
         pass
 
-    def declare_exchange(self, name):
+    def declare_exchange(self):
         """
         Set up the exchange that will route messages to this consumer. Each
         RabbitMQ exchange is uniquely identified by its name, so it does not
         matter if the exchange has already been declared.
+        """
+        pass
 
-        Arguments:
-        name -- the name of the exchange to set up
+    def declare_queue(self):
+        """
+        Set up the queue that will route messages to this consumer. Each
+        RabbitMQ queue can be defined with routing keys to use only one
+        queue for multiple jobs.
+        """
+        pass
+
+    def munch(self):
+        """
+        Begin consuming messages from the Airavata API server.
         """
         pass
 
