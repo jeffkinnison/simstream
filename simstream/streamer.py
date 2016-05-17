@@ -12,7 +12,7 @@ class PikaAsyncConsumer(object):
     The primary entry point for routing incoming messages to the proper handler.
     """
 
-    def __init__(self, rabbitmq_url, exchange_name, queue_name,
+    def __init__(self, rabbitmq_url, exchange_name, queue_name, route_message,
                  exchange_type=direct, routing_keys=["#"]):
         """
         Create a new instance of Streamer.
@@ -21,12 +21,19 @@ class PikaAsyncConsumer(object):
         rabbitmq_url -- URL to RabbitMQ server
         exchange_name -- name of RabbitMQ exchange to join
         queue_name -- name of RabbitMQ queue to join
+
+        Keyword Arguments:
+        exchange_type -- one of 'direct', 'topic', 'fanout', 'headers'
+                         (default 'direct')
+        routing_keys -- the routing key that this consumer listens for
+                        (default '#', receives all messages)
         """
         self._connection = None
         self._channel = None
-        self._closing = None
+        self._shut_down = False
         self._consumer_tag = None
         self._url = rabbitmq_url
+        self._route_message = route_message
 
         # The following are necessary to guarantee that both the RabbitMQ
         # server and Streamer know where to look for messages. These names will
@@ -55,7 +62,8 @@ class PikaAsyncConsumer(object):
         unused_connection -- the created connection (by this point already
                              available as self._connection)
         """
-        self._connection.channel(on_open_callback=self.on_channel_open)
+        self._connection.channel(on_open_callback=self.on_channel_open,
+                                 on_close_callback=self.on_channel_close)
 
     def on_connection_close(self, connection, code, text):
         """
@@ -67,13 +75,11 @@ class PikaAsyncConsumer(object):
         code -- response code from the RabbitMQ server
         text -- response body from the RabbitMQ server
         """
-        pass
-
-    def open_new_channel(self):
-        """
-        Run the Channel.Open RPC and provide a callback to run on success.
-        """
-        pass
+        self._channel = None
+        if self._shut_down:
+            self._connection.ioloop.stop()
+        else:
+            self._connection.add_timeout(5, self.reconnect)
 
     def on_channel_open(self, channel):
         """
@@ -83,7 +89,9 @@ class PikaAsyncConsumer(object):
         Arguments:
         channel -- the Channel instance opened by the Channel.Open RPC
         """
-        pass
+        self._channel = channel
+        self.declare_exchange()
+
 
     def on_channel_close(self, channel, code, text):
         """
@@ -95,7 +103,7 @@ class PikaAsyncConsumer(object):
         code -- response code from the RabbitMQ server
         text -- response body from the RabbitMQ server
         """
-        pass
+        self._connection_close()
 
     def declare_exchange(self):
         """
@@ -103,7 +111,15 @@ class PikaAsyncConsumer(object):
         RabbitMQ exchange is uniquely identified by its name, so it does not
         matter if the exchange has already been declared.
         """
-        pass
+        self._channel._exchange_declare(self.declare_exchange_success,
+                                        self._exchange,
+                                        self._exchange_type)
+
+    def declare_exchange_success(self):
+        """
+        Actions to perform on successful exchange declaration.
+        """
+        self.declare_queue()
 
     def declare_queue(self):
         """
@@ -111,13 +127,37 @@ class PikaAsyncConsumer(object):
         RabbitMQ queue can be defined with routing keys to use only one
         queue for multiple jobs.
         """
-        pass
+        self._channel.queue_declare(self.declare_queue_success,
+                                    self._queue)
+
+    def declare_queue_success(self):
+        """
+        Actions to perform on successful queue declaration.
+        """
+        self._channel.queue_bind(self.munch,
+                                 self._queue,
+                                 self._exchange,
+                                 self._routing_key
+                                )
 
     def munch(self):
         """
         Begin consuming messages from the Airavata API server.
         """
-        pass
+        self._channel.basic_consume(self._process_message)
+
+    def _process_message(self, ch, method, properties, body):
+        """
+        Receive and verify a message, then pass it to the router.
+
+        Arguments:
+        ch -- the channel that routed the message
+        method -- delivery information
+        properties -- message properties
+        body -- the message
+        """
+        self._route_message(body)
+        self.basic_ack()
 
     def start(self):
         """
