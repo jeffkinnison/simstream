@@ -4,6 +4,11 @@ Utilties for collecting system data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
+# TODO: Refactor to create a PikaProducer for streaming data
+# TODO: Associate a set of EventMonitors with DataReporter
+# TODO: Add method to deactivate reporter
+# TODO: Add method to deactivate specific collector
+
 from threading import Thread, Event
 
 from .datacollector import DataCollector
