@@ -7,7 +7,6 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 # TODO: Refactor to create a PikaProducer for streaming data
 # TODO: Associate a set of EventMonitors with DataReporter
 # TODO: Add method to deactivate reporter
-# TODO: Add method to deactivate specific collector
 
 from threading import Thread, Event
 
@@ -23,7 +22,6 @@ class CollectorDoesNotExistException(Exception):
     """Thrown when attempting to access a collector that does not exist."""
     pass
 
-
 class DataReporter(Thread):
     """Manages collecting specified data.
 
@@ -32,6 +30,8 @@ class DataReporter(Thread):
     Instance variables:
     interval -- the time interval in seconds between data collection
     collectors -- a dict of DataCollectors that are run at interval
+    producers -- a dict of active PikaProducers corresponding to user requests
+                for streaming collector data
 
     Public methods:
     add_collector -- add a new DataCollector to the list
@@ -44,6 +44,7 @@ class DataReporter(Thread):
         super(DataReporter, self).__init__()
         self.interval = interval
         self.collectors = {}
+        self.producers = {}
         for key, value in collectors:
             self.add_collector(
                 key,
@@ -138,3 +139,10 @@ class DataReporter(Thread):
             if callable(self.collectors[key]):
                 print("Running collector %s" % key)
                 self.collectors[key]()
+
+    def start_streaming(self, collector_name, exchange, queue, routing_key,
+                        interval):
+        # TODO: Check for existence of a producer at collector_name
+        # TODO: Create a new producer
+        # TODO: Mark the producer as active
+        pass
