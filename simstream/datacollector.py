@@ -6,6 +6,7 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 
 from threading import Thread, Lock
 
+# TODO: Refactor into subclass of Thread
 
 class DataCollector(object):
     """Collects data by running user-specified routines.
@@ -49,7 +50,7 @@ class DataCollector(object):
         """Run the callback and postprocessing subroutines and record result.
 
            Catches generic exceptions because the function being run is not
-           known.
+           known beforehand.
         """
         try:
             result = self._callback(*self._callback_args)# if len(self._callback_args) > 0 else self._callback()
