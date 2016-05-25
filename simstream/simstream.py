@@ -1,10 +1,15 @@
 import pika
 
-from .pikaasynccon
+from .pikaasyncconsumer import PikaAsyncConsumer
 from .datacollector import DataCollector
 from .datareporter import DataReporter
 from .eventhandler import EventHandler
 from .eventmonitor import EventMonitor
+
+
+class ReporterExistsException(Exception):
+    """Thrown when attempting to add a DataReporter with a conflicting name"""
+    pass
 
 
 class SimStream(object):
@@ -14,8 +19,21 @@ class SimStream(object):
 
     DEFAULT_CONFIG_PATH="simstream.cnf"
 
-    def __init__(self):
-        pass
+    def __init__(self, reporters={}, config={}):
+        self.reporters = reporters
+        self.consumer = None
+        self.config = config
+
+    def add_data_reporter(self, reporter):
+        """
+        Add a new DataReporter object.
+
+        Arguments:
+        reporter -- the DataReporter to add
+        """
+        if reporter.name in self.reporters:
+            throw ReporterExistsException
+        self.reporters[reporter.name] = reporter
 
     def parse_config(self):
         """
@@ -23,8 +41,7 @@ class SimStream(object):
         event handling resources.
         """
         # TODO: Read in config
-        # TODO: Set up temporary configuration dict
-        # TODO: Return config dict
+        # TODO: Set up configuration dict
         pass
 
     def route_message(self, message):
@@ -34,13 +51,22 @@ class SimStream(object):
         # TODO: Create new MessageParser
         # TODO: Run message through MessageParser
         # TODO: Route message to the correct DataReporter/EventMonitor
-        pass
+        parser = MessageParser()
+        parser(message)
+        if parser.reporter_name in self.reporters:
+            self.reporters[parser.reporter_name].start_streaming(
+                    parser.collector_name,
+                    parser.exchange,
+                    parser.queue,
+                    parser.routing_key
+                )
 
     def start_collecting(self):
         """
         Begin collecting data and monitoring for events.
         """
-        pass
+        for reporter in self.reporters:
+            reporter.start_collecting()
 
     def setup(self):
         """
@@ -62,21 +88,17 @@ class SimStream(object):
         # TODO: Assign each DataCollector to the correct DataReporter
         pass
 
-    def setup_event_monitoring(self, config):
-        """
-        Set up all EventMonitors and EventHandlers.
-        """
-        # TODO: Create and configure all EventMonitors
-        # TODO: Create and configure all EventHandlers
-        # TODO: Assign each EventMonitor to the correct EventHandler
-        pass
-
     def setup_consumer(self, config):
         """
         Set up and configure the consumer.
         """
         # TODO: Create and configure the PikaAsyncConsumer for this run
-        pass
+        if len(self.config) > 0:
+            self.consumer = PikaAsyncConsumer(self.config.rabbitmq_url,
+                                              self.config.exchange_name,
+                                              self.config.queue_name,
+                                              self.route_message
+                                             )
 
     def start(self):
         """
@@ -86,7 +108,7 @@ class SimStream(object):
         # TODO: Start collecting data
         # TODO: Start monitoring for events
         # TODO: Start listening for messages
-        pass
+        self.consumer.start()
 
     class MessageParser(object):
         """
