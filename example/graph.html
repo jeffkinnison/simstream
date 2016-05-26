@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Streaming Graph!</title>
+</head>
+
+<body>
+  <h1>Maximum Resident Set of the Server</h1>
+  <div id="chartContainer" style="height: 300px; width: 800px;"></div>
+
+  <p><label for="reporter-name">Data to Stream</label>
+  <input type="text" id="reporter-name" default="rss"></p>
+
+  <button id="start">Start Streaming</button>
+  <button id="stop">Stop Streaming</button>
+
+  <script src="http://canvasjs.com/assets/script/canvasjs.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+  <script type="text/javascript">
+  window.onload = function () {
+      var dps = []
+      var chart;
+      var updateInterval = 1000;
+      var updateChart = function () {
+          $.ajax({
+              dataType: "json",
+              method: "GET",
+              crossDomain: true,
+              url: "http://localhost:8888/mem/rss/",
+              success: function(data) {
+                  console.log(data)
+                  dps = data;
+                  chart = new CanvasJS.Chart("chartContainer", {
+                      theme: "theme2",
+                      title:{
+              			text: "Server Maximum Memory Usage Over Time"
+              		},
+                      axisX: {
+                          title: "Time"
+                      },
+                      axisY: {
+                          title: "Max RSS Memory Usage (MB)"
+                      },
+              		animationEnabled: false,
+              		data: [{
+                          xValueType: "dateTime",
+              			type: "line",
+              			dataPoints: dps
+              		}]
+                  });
+                  chart.render();
+              },
+              error: function(e) {
+                  console.log(e);
+              },
+              beforeSend: function(xhr) {
+                  xhr.setRequestHeader('X-Test-Header', 'test-value');
+              }
+          });
+      };
+  setInterval(function(){updateChart()}, updateInterval);
+  }
+  </script>
+</body>
+
+</html>
