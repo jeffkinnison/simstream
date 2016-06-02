@@ -4,79 +4,129 @@ Utilties for sending data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
+import json
 import pika
 
 
 class PikaProducer(object):
     """
-    Utility for sending job data.
-
-    Instance Variables:
-    name -- the unique name of the producer (one-to-one correspondence with the
-            name of a collector or monitor)
-    exchange -- the name of the exchange to send to
-    queue -- the name of the queue to send to
-    routing_key -- the routing key to get to the correct receiver
+    Utility for sending job data to a set of endpoints.
     """
 
-    def __init__(self, name, rabbitmq_url, exchange, queue, routing_key):
-        self.name = name
+    def __init__(self, rabbitmq_url, exchange, exchange_type="direct", routing_keys=[]):
+        """
+        Instantiate a new PikaProducer.
+
+        Arguments:
+        rabbitmq_url -- the url of the RabbitMQ server to send to
+        exchange -- the name of the exchange to send to
+
+        Keyword Arguments:
+        exchange_type -- one of one of 'direct', 'topic', 'fanout', 'headers'
+                         (default 'direct')
+        routing_key -- the routing keys to the endpoints for this producer
+                       (default [])
+        """
         self._url = rabbitmq_url
         self._exchange = exchange
-        self._queue = queue
-        self._routing_key = routing_key
+        self._exchange_type = exchange_type
+        self._routing_keys = routing_keys
 
-        self._connection = None
-        self._channel = None
-        self._connected = False
-        self._shut_down = False
+        self._connection = None # RabbitMQ connection object
+        self._channel = None    # RabbitMQ channel object
 
     def __call__(self, data):
-        if self._connection is None:
+        """
+        Publish data to the RabbitMQ server.
+
+        Arguments:
+        data -- JSON serializable data to send
+        """
+        if self._connection is None: # Start the connection if it is inactive
             self.start()
-        if self._connected:
+        if self._connected: # Serialize and send the data
             message = self.pack_data(data)
             self.send_data(message)
 
-    def pack_data(self, data):
-        # TODO: Convert data from iterable to string
-        pass
-
-    def send_data(self, data):
-        # TODO: Send the data over the channel
-        pass
-
-    def start(self):
-        self._connection = self.connect()
-
-    def shutdown(self):
-        self.connection.close()
-
-    def connect(self):
+    def add_routing_key(self, key):
         """
-        Create an asynchronous connection to the RabbitMQ server at URL.
-        """
-        return pika.SelectConnection(pika.URLParameters(self._url).
-                                     on_open_callback=self.on_connection_open,
-                                     on_close_callback=self.on_conection_close,
-                                     stop_ioloop_on_close=False)
-
-    def on_connection_open(self, unused_connection):
-        """
-        Actions to perform when the connection opens. This may not happen
-        immediately, so defer action to this callback.
+        Add a new endpoint that will receive this data.
 
         Arguments:
-        unused_connection -- the created connection (by this point already
-                             available as self._connection)
+        key -- the routing key for the new endpoint
         """
-        self._connection.channel(on_open_callback=self.on_channel_open,
-                                 on_close_callback=self.on_channel_close)
+        if key not in self._routing_keys:
+            self._routing_keys.append(key)
 
-    def on_connection_close(self, connection, code, text):
+    def remove_routing_key(self, key):
         """
-        Actions to perform when the connection is unexpectedly closed by the
-        RabbitMQ server.
+        Stop sending data to an existing endpoint.
+
+        Arguments:
+        key -- the routing key for the existing endpoint
+        """
+        try:
+            self._routing_keys.remove(key)
+        except ValueError:
+            pass
+
+    def pack_data(self, data):
+        """
+        JSON-serialize the data for transport.
+
+        Arguments:
+        data -- JSON-serializable data
+        """
+        try: # Generate a JSON string from the data
+            msg = json.dumps(data)
+        except TypeError: # Generate and return an error if serialization fails
+            msg = json.dumps({"err": "Some requested data is not JSON serializable"})
+        finally:
+            return msg
+
+    def send_data(self, data):
+        """
+        Send the data to all active endpoints.
+
+        Arguments:
+        data -- the message to send
+        """
+        if self._connection is not None: # Make sure the connection is active
+            for key in self._routing_keys: # Send to all endpoints
+                self._channel.basic_publish(exchange = self._exchange,
+                                            routing_key=key,
+                                            body=msg)
+
+    def start(self):
+        """
+        Open a connection if one does not exist.
+        """
+        if self._connection is not None:
+            self._connection = pika.SelectConnection(
+                                    pika.URLParameters(self._url),
+                                    on_open_callback=self._on_connection_open,
+                                    on_close_callback=self._on_connection_close)
+
+    def shutdown(self):
+        """
+        Close an existing connection.
+        """
+        if self._channel is not None:
+            self._channel.close()
+
+    def _on_connection_open(self, unused_connection):
+        """
+        Create a new channel if the connection opens successful.
+
+        Arguments:
+        unused_connection -- a reference to self._connection
+        """
+        self._connection._channel(on_open_callback=self._on_channel_open,
+                                  on_close_callback=self._on_channel_close)
+
+    def _on_connection_close(self, connection, code, text):
+        """
+        Actions to take when the connection is closed for any reason.
 
         Arguments:
         connection -- the connection that was closed (same as self._connection)
@@ -84,44 +134,32 @@ class PikaProducer(object):
         text -- response body from the RabbitMQ server
         """
         self._channel = None
-        if self._shut_down:
-            self._connection.ioloop.stop()
-        else:
-            self._connection.add_timeout(5, self.reconnect)
+        self._connection = None
 
-    def on_channel_open(self, channel):
+    def _on_channel_open(self, channel):
         """
-        Store the opened channel for future use and set up the exchange and
-        queue to be used.
+        Actions to take when the channel opens.
 
         Arguments:
-        channel -- the Channel instance opened by the Channel.Open RPC
+        channel -- the newly opened channel
         """
         self._channel = channel
-        self.declare_exchange()
+        self._declare_exchange()
 
-
-    def on_channel_close(self, channel, code, text):
+    def _on_channel_close(self, channel, code, text):
         """
-        Actions to perform when the channel is unexpectedly closed by the
-        RabbitMQ server.
+        Actions to take when the channel closes for any reason.
 
         Arguments:
-        connection -- the connection that was closed (same as self._connection)
+        channel -- the channel that was closed (same as self._channel)
         code -- response code from the RabbitMQ server
         text -- response body from the RabbitMQ server
         """
-        self._connection_close()
+        self._connection.close()
 
-    def declare_exchange(self):
+    def _declare_exchange(self):
         """
-        Set up the exchange that will route messages to this consumer. Each
-        RabbitMQ exchange is uniquely identified by its name, so it does not
-        matter if the exchange has already been declared.
+        Set up the exchange to publish to even if it already exists.
         """
-        self._channel._exchange_declare(self.declare_exchange_success,
-                                        self._exchange,
-                                        self._exchange_type)
-
-    def declare_exchange_success(self):
-        self._connected = True
+        self._channel.exchange_declare(exchange=self._exchange,
+                                       type=self.exchange_type)
