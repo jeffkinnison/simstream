@@ -21,13 +21,15 @@ def mem_postprocessor(rss):
     rss.y  = rss.y / 1000000
     return rss
 
-mem_reporter = DataReporter(interval=1)
+mem_reporter = DataReporter()
 mem_reporter.add_collector("rss",
                            mem_callback,
-                           100,
+                           settings["url"],
+                           settings["exchange"],
+                           limit=100,
                            postprocessor=mem_postprocessor)
 
-
+mem_reporter.start_streaming("rss", "test")
 
 if __name__ == "__main__":
     resource_streamer = SimStream(reporters={"memory": mem_reporter},
