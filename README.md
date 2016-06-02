@@ -2,8 +2,8 @@
 A utility for user-defined remote system and simulation data monitoring.
 
 ## Dependencies
-Tested with Python 2.7.11 and 3.5.1
 * tornado >= 4.3 (`pip install tornado`)
+* pika >= 0.10.0 (`pip install pika`)
 
 ## Installation
 1. Clone this repository
