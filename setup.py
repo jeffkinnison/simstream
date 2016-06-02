@@ -14,6 +14,7 @@ setup(
     packages=find_packages(),
     description="",
     install_requires=[
-        "tornado >= 4.3"
+        "tornado >= 4.3",
+        "pika >= 0.10.0"
     ],
 )

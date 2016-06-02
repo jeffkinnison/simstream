@@ -98,6 +98,41 @@ class DataReporter(Thread):
             postprocessor_args
         )
 
+    def start_collecting(self):
+        """
+        Start data collection for all associated collectors.
+        """
+        for collector in self.collectors:
+            if not self.collectors[collector].active:
+                self.start_collector(collector)
+
+    def start_collector(self, name):
+        """
+        Activate the specified collector.
+
+        Arguments:
+        name -- the name of the collector to start
+
+        Raises:
+        RuntimeError if the collector has already been started.
+        """
+        try:
+            self.collectors[name].activate()
+            self.collectors[name].start()
+        except RuntimeError as e:
+            print("Error starting collector ", name)
+            print(e)
+
+    def stop_collecting(self):
+        """
+        Stop all collectors.
+        """
+        for collector in self.collectors:
+            try:
+                self.collectors[collector].join()
+            except RuntimeError as e: # Catch unintentional dealock
+                print("Despite all odds, this seems to be causing deadlock. Crazy!")
+
     def stop_collector(self, name):
         """Deactivate the specified collector.
 
@@ -112,77 +147,16 @@ class DataReporter(Thread):
 
         self.collectors[name].deactivate()
 
-    def run(self):
-        """Collect data in parallel at the specified interval.
-
-        Call self.join() to stop collecting.
-        """
-        print("Running the collectors")
-        self._collection_event = Event()
-        while not self._collection_event.wait(timeout=self.interval):
-            print("Collecting")
-            self._record_resources()
-
-    def join(self):
-        """Stop the data collection process."""
-        try:
-            self._collection_event.set()
-            self._collection_event = 0
-        except AttributeError:
-            print("No collection event in ", self.name)
-
-    def __getitem__(self, name):
-        """Return the data from the collector specified by name.
-
-        Arguments:
-        name -- the name of the collector from which to pull data
-
-        Raises:
-        CollectorDoesNotExistException if no collector named name exists
-        """
-        if name not in self.collectors:
-            raise CollectorDoesNotExistException
-        return self.collectors[name].data
-
-    def _record_resources(self):
-        """Run all collectors."""
-        for key in self.collectors:
-            if callable(self.collectors[key]):
-                print("Running collector %s" % key)
-                self.collectors[key]()
-
-    def start_streaming(self, collector_name, exchange, queue, routing_key):
+    def start_streaming(self, collector_name, routing_key):
         """
         Begin streaming data from a collector to a particular recipient.
 
         Arguments:
-        collector_name -- the collector from which to retrieve data
-        exchange -- the RabbitMQ exchange to publish to
-        queue -- the RabbitMQ queue to publish to
         routing_key -- the routing key to reach the intended recipient
-
-        Raises:
-        ProducerExistsException if a named <collector_name>_<routing_key> exists
         """
-        # Producer names are given by <collector_name>_<routing_key> so that
-        # multiple connections may stream from the same resource
-        name = "".join([collector_name, '_', routing_key])
-
-        # Create an empty list to hold producers if none have previously
-        # been created.
-        # If a producer exists with the same name, throw an exception
-        if collector_name not in self.producers:
-            self.producers[collector_name] = []
-        else:
-            for producer in self.producers:
-                if producer.name == search_name:
-                    throw ProducerExistsException
-
-        # Add a new producer to the list
-        self.producers[collector_name].append(PikaProducer(name,
-                                                           exchange,
-                                                           name,
-                                                           routing_key))
+        if collector_name not in self.collectors: # Make sure collector exists
+            raise CollectorDoesNotExistException
+        self.collectors[collector_name].add_routing_key(routing_key)
 
     def stop_streaming(self, collector_name, routing_key):
         """
@@ -197,21 +171,3 @@ class DataReporter(Thread):
         ValueError if the producer is removed by another call to this method
                    after the for loop begins
         """
-        # Check to see if the associated collector exists
-        if collector_name not in self.producers:
-            throw ProducerDoesNotExistException
-
-        # Producer names are given by <collector_name>_<routing_key> so that
-        # multiple connections may stream from the same resource
-        search_name = "".join([collector_name, '_', routing_key])
-        found = False
-
-        # Find the producer in the list of associated producers and remove it
-        for producer in self.producers[collector_name]:
-            if producer.name == search_name:
-                self.producers[collector_name].remove(producer)
-                found = True
-
-        # Throw an exception if the producer is not found
-        if not found:
-            throw ProducerDoesNotExistException

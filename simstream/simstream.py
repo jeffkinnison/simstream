@@ -32,7 +32,7 @@ class SimStream(object):
         reporter -- the DataReporter to add
         """
         if reporter.name in self.reporters:
-            throw ReporterExistsException
+            raise ReporterExistsException
         self.reporters[reporter.name] = reporter
 
     def parse_config(self):
@@ -66,7 +66,7 @@ class SimStream(object):
         Begin collecting data and monitoring for events.
         """
         for reporter in self.reporters:
-            reporter.start_collecting()
+            self.reporters[reporter].start_collecting()
 
     def setup(self):
         """
@@ -108,6 +108,8 @@ class SimStream(object):
         # TODO: Start collecting data
         # TODO: Start monitoring for events
         # TODO: Start listening for messages
+        self.start_collecting()
+        self.setup_consumer(self.config)
         self.consumer.start()
 
     class MessageParser(object):

@@ -13,7 +13,7 @@ class PikaAsyncConsumer(object):
     """
 
     def __init__(self, rabbitmq_url, exchange_name, queue_name, route_message,
-                 exchange_type=direct, routing_keys=["#"]):
+                 exchange_type="direct", routing_keys=["#"]):
         """
         Create a new instance of Streamer.
 
@@ -48,7 +48,7 @@ class PikaAsyncConsumer(object):
         """
         Create an asynchronous connection to the RabbitMQ server at URL.
         """
-        return pika.SelectConnection(pika.URLParameters(self._url).
+        return pika.SelectConnection(pika.URLParameters(self._url),
                                      on_open_callback=self.on_connection_open,
                                      on_close_callback=self.on_conection_close,
                                      stop_ioloop_on_close=False)
@@ -144,7 +144,12 @@ class PikaAsyncConsumer(object):
         """
         Begin consuming messages from the Airavata API server.
         """
-        self._channel.basic_consume(self._process_message)
+        self._channel.add_on_cancel_callback(self.cancel_channel)
+        self._consumer_tag = self._channel.basic_consume(self._process_message)
+
+    def cancel_channel(self, method_frame):
+        if self._channel is not None:
+            self._channel._close()
 
     def _process_message(self, ch, method, properties, body):
         """
@@ -159,6 +164,19 @@ class PikaAsyncConsumer(object):
         self._route_message(body)
         self.basic_ack()
 
+    def stop_consuming(self):
+        """
+        Stop the consumer if active.
+        """
+        if self._channel:
+            self._channel.basic_cancel(self.close_channel, self._consumer_tag)
+
+    def close_channel(self):
+        """
+        Close the channel to shut down the consumer and connection.
+        """
+        self._channel.close()
+
     def start(self):
         """
         Start a connection with the RabbitMQ server.
@@ -170,75 +188,6 @@ class PikaAsyncConsumer(object):
         """
         Stop an active connection with the RabbitMQ server.
         """
+        self._closing = True
+        self.stop_consuming()
         self._connection.ioloop.stop()
-
-
-#import tornado.web
-
-
-# class Streamer(tornado.web.Application):
-#     """Server that manages background data collection.
-#
-#     Inherits from tornado.web.application without modifying behavior.
-#
-#     Instance variables:
-#     reporters -- a list of DataReporter objects managed by the Streamer
-#
-#     Public methods:
-#     start_collecting -- initiate data collection for all managed reporters
-#     """
-#
-#     def __init__(self, reporters, handlers=None, default_host='',
-#                  transforms=None, **settings):
-#         """Initialize a new Streamer.
-#
-#         Arguments:
-#         reporters -- a list of DataReporters that will run in parallel with
-#                      the server
-#
-#         Keyword arguments:
-#         handlers -- standard tornado.web.Application argument (default None)
-#         default_host -- standard tornado.web.Application argument (default '')
-#         transforms -- standard tornado.web.Application argument (default None)
-#         standard tornado.web.Application argument (default None)
-#         """
-#         super(Streamer, self).__init__(
-#             handlers,
-#             default_host,
-#             transforms,
-#             **settings
-#         )
-#         self.reporters = reporters
-#
-#     def start_collecting(self):
-#         """Tell all reporters to start collecting data"""
-#         for reporter in self.reporters:
-#             reporter.start()
-#
-#
-# class ReporterHandler(tornado.web.RequestHandler):
-#     """Handles retrieving and distributing data from reporters.
-#
-#     Inherits from tornado.web.RequestHandler without modifying underlying
-#     behavior.
-#
-#     Instance variables:
-#     reporter -- the DataReporter instance from which to retrieve data on get()
-#     template -- the Tornado template to render on get()
-#     """
-#
-#     def initialize(self, reporter=None, template=None):
-#         """Called internally by tornado to init a custom WebHandler."""
-#         self.template = template
-#         self.reporter = reporter
-#
-#     def set_default_headers(self):
-#         """Called internally by tornado to modify HTTP response headers."""
-#         self.set_header("Access-Control-Allow-Origin", "*")
-#         self.set_header("Access-Control-Allow-Headers", "*")
-#         self.set_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-#
-#     def get(self, name, range=None):
-#         """Distribute all data from reporter."""
-#         data = self.reporter[name]
-#         self.write(json.dumps(data))
