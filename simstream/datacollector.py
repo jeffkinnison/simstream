@@ -4,22 +4,31 @@ Utilties for collecting system data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
-from threading import Thread, Lock
+from .pikaproducer import PikaProducer
 
+from threading import Thread, Lock, Event
 
-class DataCollector(object):
+# TODO: Refactor into subclass of Thread
+
+class DataCollector(Thread):
     """Collects data by running user-specified routines.
+
+    Inherits from: threading.Thread
 
     Instance variables:
     name -- the name of the collector
     limit -- the maximum number of maintained data points
+    interval -- the interval (in seconds) at which data collection is performed
 
     Public methods:
-    run -- collect data if active
+    activate -- start collecting data
+    add_routing_key -- add a new streaming endpoint
     deactivate -- stop further data collection
+    remove_routing_key -- remove a streaming endpoint
+    run -- collect data if active
     """
-    def __init__(self, name, callback, limit=250, postprocessor=None,
-                 callback_args=[], postprocessor_args=[]):
+    def __init__(self, name, callback, limit=250, interval=10,
+                 postprocessor=None, callback_args=[], postprocessor_args=[]):
         """
         Arguments:
         name -- the name of the collector
@@ -27,6 +36,8 @@ class DataCollector(object):
 
         Keyword arguments:
         limit -- the maximum number of maintained data points (default 250)
+        interval -- the time interval in seconds at which to collect data
+                    (default: 10)
         postprocessor -- a function to run on the return value of callback
                          (default None)
         callback_args -- the list of arguments to pass to the callback
@@ -37,57 +48,59 @@ class DataCollector(object):
         super(DataCollector, self).__init__()
         self.name = name if name else "Unknown Resource"
         self.limit = limit
+        self.interval = interval
         self._callback = callback
         self._callback_args = callback_args
         self._postprocessor = postprocessor
         self._postprocessor_args = postprocessor_args
         self._data = []
         self._data_lock = Lock()
+        self._active = False
+        self._producer = PikaProducer()
+
+    def activate(self):
+        """
+        Start collecting data.
+        """
         self._active = True
 
-    def run(self):
-        """Run the callback and postprocessing subroutines and record result.
-
-           Catches generic exceptions because the function being run is not
-           known.
+    def add_routing_key(self, key):
         """
-        try:
-            result = self._callback(*self._callback_args)# if len(self._callback_args) > 0 else self._callback()
-            #result = self._postprocessor(result) if self._postprocessor else result
-            print("Found the value ", result, " in ", self.name)
-            self._data_lock.acquire()
-            self._data.append(result)
-            if len(self._data) > self.limit:
-                self._data.pop(0)
-            self._data_lock.release()
+        Add a new producer endpoint.
+        """
+        self._producer.add_routing_key(key)
 
-        except Exception as e:
-            print("Error: ", e)
 
     def deactivate(self):
-        """Stop collecting data when run."""
+        """
+        Stop collecting data.
+        """
         self._active = False
 
-    def __call__(self):
-        """Collect data."""
-        if self._active:
-            self.run()
+    def remove_routing_key(self, key):
+        self._producer.remove_routing_key(key)
+        if len(self._producer.endpoints) == 0:
+            self._producer.shutdown()
 
-    @property
-    def data(self, start=None, end=None):
-        """Retrieve a slice of the collected data."""
-        data = []
-        if start is None and end is None:
-            self._data_lock.acquire()
-            data = self._data
-            self._data_lock.release()
-        else:
-            self._data_lock.acquire()
-            data = self._data[start:end]
-            self._data_lock.release()
-        return data
+    def run(self):
+        """
+        Run the callback and postprocessing subroutines and record result.
 
-    @property
-    def active(self):
-        """Return the active status of the collector."""
-        return self._active
+        Catches generic exceptions because the function being run is not
+        known beforehand.
+        """
+        self._collection_event = Event()
+        while self._active and not self._collection_event.wait(timeout=self.interval):
+            try:
+                result = self._callback(*self._callback_args)# if len(self._callback_args) > 0 else self._callback()
+                #result = self._postprocessor(result) if self._postprocessor else result
+                print("Found the value ", result, " in ", self.name)
+                self._data_lock.acquire()
+                self._data.append(result)
+                if len(self._data) > self.limit:
+                    self._data.pop(0)
+                self._data_lock.release()
+                self._producer.send()
+
+            except Exception as e:
+                print("Error: ", e)

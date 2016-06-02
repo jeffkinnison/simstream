@@ -4,6 +4,10 @@ Utilties for collecting system data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
+# TODO: Refactor to iterate over producers, not collectors. Collectors should
+#       execute concurrently.
+# TODO: Add method to deactivate reporter
+
 from threading import Thread, Event
 
 from .datacollector import DataCollector
@@ -19,6 +23,16 @@ class CollectorDoesNotExistException(Exception):
     pass
 
 
+class ProducerExistsException(Exception):
+    """Thrown when attempting to add a producer with a conflicting name."""
+    pass
+
+
+class ProducerDoesNotExistException(Exception):
+    """Thrown when attempting to work with a producer that does not exist."""
+    pass
+
+
 class DataReporter(Thread):
     """Manages collecting specified data.
 
@@ -27,6 +41,8 @@ class DataReporter(Thread):
     Instance variables:
     interval -- the time interval in seconds between data collection
     collectors -- a dict of DataCollectors that are run at interval
+    producers -- a dict of active PikaProducers corresponding to user requests
+                for streaming collector data
 
     Public methods:
     add_collector -- add a new DataCollector to the list
@@ -39,6 +55,7 @@ class DataReporter(Thread):
         super(DataReporter, self).__init__()
         self.interval = interval
         self.collectors = {}
+        self.producers = {}
         for key, value in collectors:
             self.add_collector(
                 key,
@@ -133,3 +150,68 @@ class DataReporter(Thread):
             if callable(self.collectors[key]):
                 print("Running collector %s" % key)
                 self.collectors[key]()
+
+    def start_streaming(self, collector_name, exchange, queue, routing_key):
+        """
+        Begin streaming data from a collector to a particular recipient.
+
+        Arguments:
+        collector_name -- the collector from which to retrieve data
+        exchange -- the RabbitMQ exchange to publish to
+        queue -- the RabbitMQ queue to publish to
+        routing_key -- the routing key to reach the intended recipient
+
+        Raises:
+        ProducerExistsException if a named <collector_name>_<routing_key> exists
+        """
+        # Producer names are given by <collector_name>_<routing_key> so that
+        # multiple connections may stream from the same resource
+        name = "".join([collector_name, '_', routing_key])
+
+        # Create an empty list to hold producers if none have previously
+        # been created.
+        # If a producer exists with the same name, throw an exception
+        if collector_name not in self.producers:
+            self.producers[collector_name] = []
+        else:
+            for producer in self.producers:
+                if producer.name == search_name:
+                    throw ProducerExistsException
+
+        # Add a new producer to the list
+        self.producers[collector_name].append(PikaProducer(name,
+                                                           exchange,
+                                                           name,
+                                                           routing_key))
+
+    def stop_streaming(self, collector_name, routing_key):
+        """
+        Stop a particular stream.
+
+        Arguments:
+        collector_name -- the collector associated with the producer to stop
+        routing_key -- the routing key to reach the intended recipient
+
+        Raises:
+        ProducerDoesNotExistException if no producer named name exists
+        ValueError if the producer is removed by another call to this method
+                   after the for loop begins
+        """
+        # Check to see if the associated collector exists
+        if collector_name not in self.producers:
+            throw ProducerDoesNotExistException
+
+        # Producer names are given by <collector_name>_<routing_key> so that
+        # multiple connections may stream from the same resource
+        search_name = "".join([collector_name, '_', routing_key])
+        found = False
+
+        # Find the producer in the list of associated producers and remove it
+        for producer in self.producers[collector_name]:
+            if producer.name == search_name:
+                self.producers[collector_name].remove(producer)
+                found = True
+
+        # Throw an exception if the producer is not found
+        if not found:
+            throw ProducerDoesNotExistException
