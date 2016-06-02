@@ -10,7 +10,7 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 
 from threading import Thread, Event
 
-from datacollector import DataCollector
+from .datacollector import DataCollector
 
 
 class CollectorExistsException(Exception):
@@ -51,22 +51,22 @@ class DataReporter(Thread):
     stop_collector -- stop a running DataCollector
     """
 
-    def __init__(self, interval=10, collectors={}):
+    def __init__(self, collectors={}):
         super(DataReporter, self).__init__()
-        self.interval = interval
         self.collectors = {}
-        self.producers = {}
         for key, value in collectors:
             self.add_collector(
                 key,
                 value.limit,
                 value.callback,
+                value.url,
+                value.exchange,
                 value.postprocessor,
                 value.callback_args,
                 value.postprocessor_args
             )
 
-    def add_collector(self, name, callback, limit=250, postprocessor=None,
+    def add_collector(self, name, callback, rabbitmq_url, exchange, limit=250, postprocessor=None,
                       callback_args=[], postprocessor_args=[]):
         """Add a new collector.
 
@@ -92,10 +92,12 @@ class DataReporter(Thread):
         self.collectors[name] = DataCollector(
             name,
             callback,
-            limit,
-            postprocessor,
-            callback_args,
-            postprocessor_args
+            rabbitmq_url,
+            exchange,
+            limit=limit,
+            postprocessor=postprocessor,
+            callback_args=callback_args,
+            postprocessor_args=postprocessor_args
         )
 
     def start_collecting(self):
@@ -103,8 +105,7 @@ class DataReporter(Thread):
         Start data collection for all associated collectors.
         """
         for collector in self.collectors:
-            if not self.collectors[collector].active:
-                self.start_collector(collector)
+            self.start_collector(collector)
 
     def start_collector(self, name):
         """

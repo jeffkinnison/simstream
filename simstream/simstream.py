@@ -1,10 +1,10 @@
 import pika
 
-from pikaasyncconsumer import PikaAsyncConsumer
-from datacollector import DataCollector
-from datareporter import DataReporter
-from eventhandler import EventHandler
-from eventmonitor import EventMonitor
+from .pikaasyncconsumer import PikaAsyncConsumer
+from .datacollector import DataCollector
+from .datareporter import DataReporter
+from .eventhandler import EventHandler
+from .eventmonitor import EventMonitor
 
 
 class ReporterExistsException(Exception):
@@ -87,10 +87,11 @@ class SimStream(object):
         # TODO: Create and configure all DataReporters
         # TODO: Create and configure all DataCollectors
         # TODO: Assign each DataCollector to the correct DataReporter
-        for reporter in self.config.reporters:
-            pass
-        for collector in self.config.collectors:
-            pass
+        if "reporters" in self.config:
+            for reporter in self.config.reporters:
+                pass
+            for collector in self.config.collectors:
+                pass
 
     def setup_event_monitoring(self):
         #TODO: Create and configure all EventMonitors
@@ -105,7 +106,10 @@ class SimStream(object):
         """
         # TODO: Create and configure the PikaAsyncConsumer for this run
         if len(self.config) > 0 and self.consumer is None:
-            message_handler = self.config["message_handler"]
+            if "message_handler" in self.config:
+                message_handler = self.config["message_handler"]
+            else:
+                message_handler = self.route_message
             self.consumer = PikaAsyncConsumer(self.config["url"],
                                               self.config["exchange"],
                                               self.config["queue"],

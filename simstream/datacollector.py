@@ -4,7 +4,7 @@ Utilties for collecting system data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
-from pikaproducer import PikaProducer
+from .pikaproducer import PikaProducer
 
 from threading import Thread, Lock, Event
 
@@ -27,7 +27,7 @@ class DataCollector(Thread):
     remove_routing_key -- remove a streaming endpoint
     run -- collect data if active
     """
-    def __init__(self, name, callback, limit=250, interval=10,
+    def __init__(self, name, callback, rabbitmq_url, exchange, limit=250, interval=10,
                  postprocessor=None, callback_args=[], postprocessor_args=[]):
         """
         Arguments:
@@ -56,7 +56,7 @@ class DataCollector(Thread):
         self._data = []
         self._data_lock = Lock()
         self._active = False
-        self._producer = PikaProducer()
+        self._producer = PikaProducer(rabbitmq_url, exchange)
 
     def activate(self):
         """
