@@ -41,6 +41,6 @@ class EventMonitor(object):
         for name in handler_names:
             if name not in self.handlers:
                 raise EventHandlerDoesNotExistException
-            if !callable(self.handlers[name]):
+            if not callable(self.handlers[name]):
                 raise EventHandlerNotCallableException
             self.handlers[name]()
