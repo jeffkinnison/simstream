@@ -1,37 +1,59 @@
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
-import pika
+
+from simstream import PikaAsyncConsumer, PikaProducer
 
 settings = {
     url: "amqp://localhost:5672",
     exchange: "simstream",
     queue: "remote_node",
-    routing_key: "unique_key",
+    routing_key: "stream_receiver",
     exchange_type: "topic"
 }
 
+remote_settings = {
+    url: "amqp://localhost:5672",
+    exchange: "simstream",
+    queue: "remote_node",
+    routing_key: "stream_sender",
+    exchange_type: "topic"
+}
 
 class PlotHandler(tornado.web.RequestHandler):
 
-    def get(self, collector, command):
+    def get(self):
         pass
 
 
 class StreamingHandler(tornado.websocket.WebSocketHandler):
 
-    def on_open(self, exchange, queue, routing_key):
-        pass
+    def open(self):
+        self.consumer = PikaAsyncConsumer(settings.url,
+                                          settings.exchange,
+                                          settings.queue,
+                                          self.send_data,
+                                          routing_keys=settings.routing_key,
+                                          exchange_type=settings.exchange_type
+                                          )
+        self.producer = PikaProducer("",
+                                     remote_settings.url,
+                                     remote_settings.exchange,
+                                     remote_settings.queue,
+                                     remote_settings.routing_key)
 
-    def on_message(self, collector, command):
-        pass
+    def on_message(self, message):
+        if hasattr(self, producer) and producer is not None:
+            self.producer.send_data(message)
 
     def on_close(self):
-        pass
+        self.consumer.stop()
+        self.producer.shutdown()
+        self.consumer = None
+        self.producer = None
 
-    def write_message(self):
-        pass
-
+    def send_data(self, ch, method, properties, body):
+        self.write_message(body)
 
 if __name__ == "__main__":
     app = tornado.web.Application([
