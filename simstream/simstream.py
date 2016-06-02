@@ -56,8 +56,6 @@ class SimStream(object):
         if parser.reporter_name in self.reporters:
             self.reporters[parser.reporter_name].start_streaming(
                     parser.collector_name,
-                    parser.exchange,
-                    parser.queue,
                     parser.routing_key
                 )
 
@@ -77,27 +75,43 @@ class SimStream(object):
         # TODO: Create DataReporter and DataCollector instances
         # TODO: Create EventMonitor and EventHandler instances
         # TODO: Configure consumer
-        pass
+        self.parse_config()
+        self.setup_consumer()
+        self.setup_data_collection()
+        self.setup_event_monitoring()
 
-    def setup_data_collection(self, config):
+    def setup_data_collection(self):
         """
         Set up all DataReporters and DataCollectors.
         """
         # TODO: Create and configure all DataReporters
         # TODO: Create and configure all DataCollectors
         # TODO: Assign each DataCollector to the correct DataReporter
+        for reporter in self.config.reporters:
+            pass
+        for collector in self.config.collectors:
+            pass
+
+    def setup_event_monitoring(self):
+        #TODO: Create and configure all EventMonitors
+        #TODO: Create and configure all EventHandlers
+        #TODO: Assign each EventHandler to the correct EventMonitor
+        #TODO: Assign each EventMonitor to the correct DataCollector
         pass
 
-    def setup_consumer(self, config):
+    def setup_consumer(self):
         """
         Set up and configure the consumer.
         """
         # TODO: Create and configure the PikaAsyncConsumer for this run
-        if len(self.config) > 0:
-            self.consumer = PikaAsyncConsumer(self.config.rabbitmq_url,
-                                              self.config.exchange_name,
-                                              self.config.queue_name,
-                                              self.route_message
+        if len(self.config) > 0 and self.consumer is None:
+            message_handler = self.config["message_handler"]
+            self.consumer = PikaAsyncConsumer(self.config["url"],
+                                              self.config["exchange"],
+                                              self.config["queue"],
+                                              message_handler,
+                                              exchange_type=self.config["exchange_type"],
+                                              routing_key=self.config["routing_key"]
                                              )
 
     def start(self):
@@ -108,9 +122,16 @@ class SimStream(object):
         # TODO: Start collecting data
         # TODO: Start monitoring for events
         # TODO: Start listening for messages
+        if self.consumer is None:
+            self.setup()
         self.start_collecting()
-        self.setup_consumer(self.config)
         self.consumer.start()
+
+    def stop(self):
+        """
+        Stop all data collection, event monitoring, and message consumption.
+        """
+
 
     class MessageParser(object):
         """
@@ -123,5 +144,26 @@ class SimStream(object):
         def __call__(self, message):
             pass
 
+
 if __name__ == "__main__":
+    def print_message(message):
+        with open("test.out", "w") as f:
+            print(message)
+
     print(SimStream.DEFAULT_CONFIG_PATH)
+
+    config = {
+        "url": "amqp://guest:guest@localhost:5672",
+        "exchange": "simstream",
+        "queue": "simstream_test",
+        "message_handler": print_message,
+        "routing_key": "test_consumer",
+        "exchange_type": "topic"
+    }
+
+    streamer = SimStream(config=config)
+
+    try:
+        streamer.start()
+    except KeyboardInterrupt:
+        streamer.stop()

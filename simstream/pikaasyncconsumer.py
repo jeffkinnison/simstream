@@ -12,7 +12,7 @@ class PikaAsyncConsumer(object):
     The primary entry point for routing incoming messages to the proper handler.
     """
 
-    def __init__(self, rabbitmq_url, exchange_name, queue_name, route_message,
+    def __init__(self, rabbitmq_url, exchange_name, queue_name, message_handler,
                  exchange_type="direct", routing_key="#"):
         """
         Create a new instance of Streamer.
@@ -33,7 +33,7 @@ class PikaAsyncConsumer(object):
         self._shut_down = False
         self._consumer_tag = None
         self._url = rabbitmq_url
-        self._route_message = route_message
+        self._message_handler = message_handler
 
         # The following are necessary to guarantee that both the RabbitMQ
         # server and Streamer know where to look for messages. These names will
@@ -80,6 +80,16 @@ class PikaAsyncConsumer(object):
         else:
             self._connection.add_timeout(5, self.reconnect)
 
+    def reconnect(self):
+        """
+        Attempt to reestablish a connection with the RabbitMQ server.
+        """
+        self._connection.ioloop.stop() # Stop the ioloop to completely close
+
+        if not self._shut_down: # Connect and restart the ioloop
+            self._connection = self.connect()
+            self._connection.ioloop.start()
+
     def on_channel_open(self, channel):
         """
         Store the opened channel for future use and set up the exchange and
@@ -103,7 +113,7 @@ class PikaAsyncConsumer(object):
         code -- response code from the RabbitMQ server
         text -- response body from the RabbitMQ server
         """
-        self._connection_close()
+        self._connection.close()
 
     def declare_exchange(self):
         """
@@ -161,8 +171,9 @@ class PikaAsyncConsumer(object):
         properties -- message properties
         body -- the message
         """
-        self._route_message(body)
-        self.basic_ack()
+        print("Received Message: %s" % body)
+        self._message_handler(body)
+        self._channel.basic_ack()
 
     def stop_consuming(self):
         """

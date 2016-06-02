@@ -91,21 +91,23 @@ class PikaProducer(object):
         Arguments:
         data -- the message to send
         """
-        if self._connection is not None: # Make sure the connection is active
+        if self._channel is not None: # Make sure the connection is active
             for key in self._routing_keys: # Send to all endpoints
                 self._channel.basic_publish(exchange = self._exchange,
                                             routing_key=key,
-                                            body=msg)
+                                            body=data)
 
     def start(self):
         """
         Open a connection if one does not exist.
         """
-        if self._connection is not None:
-            self._connection = pika.SelectConnection(
-                                    pika.URLParameters(self._url),
-                                    on_open_callback=self._on_connection_open,
-                                    on_close_callback=self._on_connection_close)
+        print("Starting new connection")
+        if self._connection is None:
+            print("Creating connection object")
+            self._connection = pika.BlockingConnection(pika.URLParameters(self._url))
+            self._channel = self._connection.channel()
+            self._channel.exchange_declare(exchange=self._exchange,
+                                           type=self._exchange_type)
 
     def shutdown(self):
         """
@@ -121,8 +123,8 @@ class PikaProducer(object):
         Arguments:
         unused_connection -- a reference to self._connection
         """
-        self._connection._channel(on_open_callback=self._on_channel_open,
-                                  on_close_callback=self._on_channel_close)
+        print("Connection is open")
+        self._connection.channel(on_open_callback=self._on_channel_open)
 
     def _on_connection_close(self, connection, code, text):
         """
@@ -133,6 +135,7 @@ class PikaProducer(object):
         code -- response code from the RabbitMQ server
         text -- response body from the RabbitMQ server
         """
+        print("Connection is closed")
         self._channel = None
         self._connection = None
 
@@ -143,7 +146,9 @@ class PikaProducer(object):
         Arguments:
         channel -- the newly opened channel
         """
+        print("Channel is open")
         self._channel = channel
+        self._channel.add_on_close_callback(self._on_channel_close)
         self._declare_exchange()
 
     def _on_channel_close(self, channel, code, text):
@@ -155,11 +160,37 @@ class PikaProducer(object):
         code -- response code from the RabbitMQ server
         text -- response body from the RabbitMQ server
         """
+        print("Channel is closed")
         self._connection.close()
 
     def _declare_exchange(self):
         """
         Set up the exchange to publish to even if it already exists.
         """
+        print("Exchange is declared")
         self._channel.exchange_declare(exchange=self._exchange,
                                        type=self.exchange_type)
+
+if __name__ == "__main__":
+    import time
+
+    config = {
+        "url": "amqp://guest:guest@localhost:5672",
+        "exchange": "simstream",
+        "routing_key": "test_consumer",
+        "exchange_type": "topic"
+    }
+
+    producer = PikaProducer(config["url"],
+                            config["exchange"],
+                            exchange_type=config["exchange_type"],
+                            routing_keys=[config["routing_key"]])
+    producer.start()
+
+    while True:
+        try:
+            time.sleep(5)
+            data = str(time.time()) + ": Hello SimStream"
+            producer.send_data(data)
+        except KeyboardInterrupt:
+            producer.shutdown()
