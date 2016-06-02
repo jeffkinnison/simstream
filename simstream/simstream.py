@@ -1,10 +1,10 @@
 import pika
 
-from .pikaasyncconsumer import PikaAsyncConsumer
-from .datacollector import DataCollector
-from .datareporter import DataReporter
-from .eventhandler import EventHandler
-from .eventmonitor import EventMonitor
+from pikaasyncconsumer import PikaAsyncConsumer
+from datacollector import DataCollector
+from datareporter import DataReporter
+from eventhandler import EventHandler
+from eventmonitor import EventMonitor
 
 
 class ReporterExistsException(Exception):

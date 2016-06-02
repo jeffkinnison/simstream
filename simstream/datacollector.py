@@ -4,7 +4,7 @@ Utilties for collecting system data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
-from .pikaproducer import PikaProducer
+from pikaproducer import PikaProducer
 
 from threading import Thread, Lock, Event
 

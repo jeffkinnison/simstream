@@ -10,7 +10,7 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 
 from threading import Thread, Event
 
-from .datacollector import DataCollector
+from datacollector import DataCollector
 
 
 class CollectorExistsException(Exception):
