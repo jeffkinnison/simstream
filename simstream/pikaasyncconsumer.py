@@ -13,7 +13,7 @@ class PikaAsyncConsumer(object):
     """
 
     def __init__(self, rabbitmq_url, exchange_name, queue_name, route_message,
-                 exchange_type="direct", routing_keys=["#"]):
+                 exchange_type="direct", routing_key="#"):
         """
         Create a new instance of Streamer.
 
@@ -42,7 +42,7 @@ class PikaAsyncConsumer(object):
         self._exchange = exchange_name
         self._exchange_type = exchange_type
         self._queue = queue_name
-        self._routing_keys = routing_keys
+        self._routing_key = routing_key
 
     def connect(self):
         """
@@ -50,7 +50,7 @@ class PikaAsyncConsumer(object):
         """
         return pika.SelectConnection(pika.URLParameters(self._url),
                                      on_open_callback=self.on_connection_open,
-                                     on_close_callback=self.on_conection_close,
+                                     on_close_callback=self.on_connection_close,
                                      stop_ioloop_on_close=False)
 
     def on_connection_open(self, unused_connection):
@@ -62,8 +62,7 @@ class PikaAsyncConsumer(object):
         unused_connection -- the created connection (by this point already
                              available as self._connection)
         """
-        self._connection.channel(on_open_callback=self.on_channel_open,
-                                 on_close_callback=self.on_channel_close)
+        self._connection.channel(on_open_callback=self.on_channel_open)
 
     def on_connection_close(self, connection, code, text):
         """
@@ -90,6 +89,7 @@ class PikaAsyncConsumer(object):
         channel -- the Channel instance opened by the Channel.Open RPC
         """
         self._channel = channel
+        self._channel.add_on_close_callback(self.on_channel_close)
         self.declare_exchange()
 
 
@@ -111,11 +111,11 @@ class PikaAsyncConsumer(object):
         RabbitMQ exchange is uniquely identified by its name, so it does not
         matter if the exchange has already been declared.
         """
-        self._channel._exchange_declare(self.declare_exchange_success,
+        self._channel.exchange_declare(self.declare_exchange_success,
                                         self._exchange,
                                         self._exchange_type)
 
-    def declare_exchange_success(self):
+    def declare_exchange_success(self, unused_connection):
         """
         Actions to perform on successful exchange declaration.
         """
@@ -130,7 +130,7 @@ class PikaAsyncConsumer(object):
         self._channel.queue_declare(self.declare_queue_success,
                                     self._queue)
 
-    def declare_queue_success(self):
+    def declare_queue_success(self, method_frame):
         """
         Actions to perform on successful queue declaration.
         """
@@ -140,7 +140,7 @@ class PikaAsyncConsumer(object):
                                  self._routing_key
                                 )
 
-    def munch(self):
+    def munch(self, unused):
         """
         Begin consuming messages from the Airavata API server.
         """
