@@ -27,7 +27,7 @@ class DataCollector(Thread):
     remove_routing_key -- remove a streaming endpoint
     run -- collect data if active
     """
-    def __init__(self, name, callback, rabbitmq_url, exchange, limit=250, interval=10,
+    def __init__(self, name, callback, rabbitmq_url, exchange, exchange_type="direct", limit=250, interval=10,
                  postprocessor=None, callback_args=[], postprocessor_args=[]):
         """
         Arguments:
@@ -56,7 +56,7 @@ class DataCollector(Thread):
         self._data = []
         self._data_lock = Lock()
         self._active = False
-        self._producer = PikaProducer(rabbitmq_url, exchange)
+        self._producer = PikaProducer(rabbitmq_url, exchange, exchange_type="topic")
 
     def activate(self):
         """
@@ -100,7 +100,7 @@ class DataCollector(Thread):
                 if len(self._data) > self.limit:
                     self._data.pop(0)
                 self._data_lock.release()
-                self._producer.send()
+                self._producer(result)
 
             except Exception as e:
                 print("Error: ", e)

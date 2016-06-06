@@ -44,7 +44,7 @@ class PikaProducer(object):
         """
         if self._connection is None: # Start the connection if it is inactive
             self.start()
-        if self._connected: # Serialize and send the data
+        else: # Serialize and send the data
             message = self.pack_data(data)
             self.send_data(message)
 
