@@ -92,8 +92,8 @@ class DataCollector(Thread):
         self._collection_event = Event()
         while self._active and not self._collection_event.wait(timeout=self.interval):
             try:
-                result = self._callback(*self._callback_args)# if len(self._callback_args) > 0 else self._callback()
-                #result = self._postprocessor(result) if self._postprocessor else result
+                result = self._callback(*self._callback_args)
+                result = self._postprocessor(result, *self._postprocessor_args) if self._postprocessor else result
                 print("Found the value ", result, " in ", self.name)
                 self._data_lock.acquire()
                 self._data.append(result)
@@ -103,4 +103,8 @@ class DataCollector(Thread):
                 self._producer(result)
 
             except Exception as e:
-                print("Error: ", e)
+                print("[ERROR] %s" % (e))
+
+    def stop(self):
+        for key in self.producer.routing_keys:
+            self.remove_routing_key(key)
