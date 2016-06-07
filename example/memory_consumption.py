@@ -24,8 +24,13 @@ remote_settings = {
 
 
 def print_result(body):
-    data = json.loads(body)
-    print("%s: %s" % (data["x"], data["y"]))
+    try:
+        data = json.loads(body.decode())
+        print("%s: %s" % (data["x"], data["y"]))
+    except json.decoder.JSONDecodeError as e:
+        print("[ERROR] Could not decode JSON %s: %s", (body, e))
+    except UnicodeError as e:
+        print("[ERROR] Could not decode message %s: %s" % (body, e.reason))
 
 consumer = PikaAsyncConsumer(settings['url'],
                              settings['exchange'],
