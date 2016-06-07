@@ -19,6 +19,19 @@ class SimStream(object):
 
     DEFAULT_CONFIG_PATH="simstream.cnf"
 
+
+    class MessageParser(object):
+        """
+        Internal message parsing facilities.
+        """
+
+        def __init__(self):
+            pass
+
+        def __call__(self, message):
+            pass
+
+
     def __init__(self, reporters={}, config={}):
         self.reporters = reporters
         self.consumer = None
@@ -71,10 +84,6 @@ class SimStream(object):
         Set up the SimStream instance: create DataCollectors, create
         EventMonitors, configure AMQP consumer.
         """
-        # TODO: Get config information
-        # TODO: Create DataReporter and DataCollector instances
-        # TODO: Create EventMonitor and EventHandler instances
-        # TODO: Configure consumer
         self.parse_config()
         self.setup_consumer()
         self.setup_data_collection()
@@ -104,7 +113,6 @@ class SimStream(object):
         """
         Set up and configure the consumer.
         """
-        # TODO: Create and configure the PikaAsyncConsumer for this run
         if len(self.config) > 0 and self.consumer is None:
             if "message_handler" in self.config:
                 message_handler = self.config["message_handler"]
@@ -122,10 +130,6 @@ class SimStream(object):
         """
         Configure and start SimStream.
         """
-        # TODO: Perform setup operations
-        # TODO: Start collecting data
-        # TODO: Start monitoring for events
-        # TODO: Start listening for messages
         if self.consumer is None:
             self.setup()
         self.start_collecting()
@@ -135,18 +139,8 @@ class SimStream(object):
         """
         Stop all data collection, event monitoring, and message consumption.
         """
-
-
-    class MessageParser(object):
-        """
-        Internal message parsing facilities.
-        """
-
-        def __init__(self):
-            pass
-
-        def __call__(self, message):
-            pass
+        self.consumer.stop()
+        self.stop_collecting()
 
 
 if __name__ == "__main__":
