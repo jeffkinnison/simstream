@@ -23,31 +23,21 @@ class CollectorDoesNotExistException(Exception):
     pass
 
 
-class ProducerExistsException(Exception):
-    """Thrown when attempting to add a producer with a conflicting name."""
-    pass
-
-
-class ProducerDoesNotExistException(Exception):
-    """Thrown when attempting to work with a producer that does not exist."""
-    pass
-
-
-class DataReporter(Thread):
+class DataReporter(object):
     """Manages collecting specified data.
 
     Subclass of threading.Thread that modifies Thread.join() and Thread.run()
 
     Instance variables:
-    interval -- the time interval in seconds between data collection
     collectors -- a dict of DataCollectors that are run at interval
-    producers -- a dict of active PikaProducers corresponding to user requests
-                for streaming collector data
 
     Public methods:
     add_collector -- add a new DataCollector to the list
     run -- start the data collection loop
     join -- end data collection and return control to main thread
+    start_collecting -- begin data collection for all collectors
+    start_collector -- begin data collection for a specific collector
+    stop_collecting -- stop all data collection
     stop_collector -- stop a running DataCollector
     """
 
@@ -66,7 +56,7 @@ class DataReporter(Thread):
                 value.postprocessor_args
             )
 
-    def add_collector(self, name, callback, rabbitmq_url, exchange, limit=250, postprocessor=None,
+    def add_collector(self, name, callback, rabbitmq_url, exchange, limit=250, interval=10, postprocessor=None,
                       callback_args=[], postprocessor_args=[]):
         """Add a new collector.
 
@@ -95,6 +85,7 @@ class DataReporter(Thread):
             rabbitmq_url,
             exchange,
             limit=limit,
+            interval=interval,
             postprocessor=postprocessor,
             callback_args=callback_args,
             postprocessor_args=postprocessor_args
@@ -172,3 +163,4 @@ class DataReporter(Thread):
         ValueError if the producer is removed by another call to this method
                    after the for loop begins
         """
+        pass
