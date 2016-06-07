@@ -57,7 +57,7 @@ class DataReporter(object):
             )
 
     def add_collector(self, name, callback, rabbitmq_url, exchange, limit=250, interval=10, postprocessor=None,
-                      callback_args=[], postprocessor_args=[]):
+                      exchange_type="direct", callback_args=[], postprocessor_args=[]):
         """Add a new collector.
 
         Arguments:
@@ -87,6 +87,7 @@ class DataReporter(object):
             limit=limit,
             interval=interval,
             postprocessor=postprocessor,
+            exchange_type=exchange_type,
             callback_args=callback_args,
             postprocessor_args=postprocessor_args
         )
@@ -120,10 +121,7 @@ class DataReporter(object):
         Stop all collectors.
         """
         for collector in self.collectors:
-            try:
-                self.collectors[collector].join()
-            except RuntimeError as e: # Catch unintentional dealock
-                print("Despite all odds, this seems to be causing deadlock. Crazy!")
+            self.stop_collector(collector)
 
     def stop_collector(self, name):
         """Deactivate the specified collector.
@@ -137,7 +135,11 @@ class DataReporter(object):
         if name not in self.collectors:
             raise CollectorDoesNotExistException
 
-        self.collectors[name].deactivate()
+        try:
+            self.collectors[name].deactivate()
+            self.collectors[name].stop()
+        except RuntimeError as e: # Catch deadlock
+
 
     def start_streaming(self, collector_name, routing_key):
         """
