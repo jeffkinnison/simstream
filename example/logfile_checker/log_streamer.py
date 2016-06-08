@@ -95,7 +95,7 @@ if __name__ == "__main__":
                                LogMonitor(logfile),
                                settings["url"],
                                settings["exchange"],
-                               limit=1,
+                               limit=10,
                                interval=2,
                                exchange_type=settings["exchange_type"],
                                postprocessor=get_relevant_log_lines)
