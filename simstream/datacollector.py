@@ -8,6 +8,8 @@ from .pikaproducer import PikaProducer
 
 from threading import Thread, Lock, Event
 
+import copy
+
 # TODO: Refactor into subclass of Thread
 
 class DataCollector(Thread):
@@ -100,7 +102,7 @@ class DataCollector(Thread):
                 if len(self._data) > self.limit:
                     self._data.pop(0)
                 self._data_lock.release()
-                self._producer(result)
+                self._producer(copy.copy(self._data))
 
             except Exception as e:
                 print("[ERROR] %s" % (e))
