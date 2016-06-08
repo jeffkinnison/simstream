@@ -27,6 +27,7 @@ mem_reporter.add_collector("rss",
                            settings["url"],
                            settings["exchange"],
                            limit=100,
+                           interval=2,
                            postprocessor=mem_postprocessor,
                            )
 
