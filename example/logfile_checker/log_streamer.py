@@ -1,6 +1,6 @@
 from simstream import SimStream, DataReporter
 
-import sys
+import sys, json
 
 class LogMonitor(object):
     """
@@ -74,14 +74,19 @@ def get_relevant_log_lines(log_lines):
     return relevant_lines
 
 
-settings = {
-    "url": "amqp://guest:guest@localhost:5672",
-    "exchange": "simstream",
-    "queue": "test",
-    "routing_key": "logfile",
-    "exchange_type": "topic"
-}
+#settings = {
+#    "url": "amqp://guest:guest@localhost:5672",
+#    "exchange": "simstream",
+#    "queue": "test",
+#    "routing_key": "logfile",
+#    "exchange_type": "topic"
+#}
 
+settings = {}
+
+with open("../settings.json", 'r') as f:
+    settings = json.load(f)
+    settings["routing_key"] = "memory"
 
 if __name__ == "__main__":
     logfile = sys.argv[1]

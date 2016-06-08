@@ -1,16 +1,22 @@
 import resource
 import time
+import json
 
 from simstream import SimStream, DataReporter, DataCollector
 
-settings = {
-    "url": "amqp://localhost:5672",
-    "exchange": "simstream",
-    "queue": "remote_node",
-    "routing_key": "stream_sender",
-    "exchange_type": "topic"
-}
+#settings = {
+#    "url": "amqp://localhost:5672",
+#    "exchange": "simstream",
+#    "queue": "remote_node",
+#    "routing_key": "stream_sender",
+#    "exchange_type": "topic"
+#}
 
+settings = {}
+
+with open("../settings.json", 'r') as f:
+    settings = json.load(f)
+    settings["routing_key"] = "memory"
 
 def mem_callback():
     return {'x': time.time() * 1000,

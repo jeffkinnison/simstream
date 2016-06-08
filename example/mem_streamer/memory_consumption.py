@@ -6,21 +6,19 @@ import json
 
 from simstream import PikaAsyncConsumer, PikaProducer
 
-settings = {
-    "url": "amqp://localhost:5672",
-    "exchange": "simstream",
-    "queue": "remote_node",
-    "routing_key": "test",
-    "exchange_type": "topic"
-}
+#settings = {
+#    "url": "amqp://localhost:5672",
+#    "exchange": "simstream",
+#    "queue": "remote_node",
+#    "routing_key": "test",
+#    "exchange_type": "topic"
+#}
 
-remote_settings = {
-    "url": "amqp://localhost:5672",
-    "exchange": "simstream",
-    "queue": "remote_node",
-    "routing_key": "stream_sender",
-    "exchange_type": "topic"
-}
+settings = {}
+ 
+with open("../settings.json", 'r') as f:
+    settings = json.load(f)
+    settings["routing_key"] = "memory"
 
 
 def print_result(body):

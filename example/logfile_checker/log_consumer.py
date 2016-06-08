@@ -1,13 +1,19 @@
 import json
 from simstream import PikaAsyncConsumer
 
-settings = {
-    "url": "amqp://guest:guest@localhost:5672",
-    "exchange": "simstream",
-    "queue": "test",
-    "routing_key": "logfile",
-    "exchange_type": "topic"
-}
+#settings = {
+#    "url": "amqp://guest:guest@localhost:5672",
+#    "exchange": "simstream",
+#    "queue": "test",
+#    "routing_key": "logfile",
+#    "exchange_type": "topic"
+#}
+
+settings = {}
+
+with open("../settings.json", 'r') as f:
+    settings = json.load(f)
+    settings["routing_key"] = "memory"
 
 def print_log_line(body):
     try:
