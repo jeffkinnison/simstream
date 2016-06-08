@@ -139,6 +139,7 @@ class DataReporter(object):
             self.collectors[name].deactivate()
             self.collectors[name].stop()
         except RuntimeError as e: # Catch deadlock
+            print(e)
 
 
     def start_streaming(self, collector_name, routing_key):
