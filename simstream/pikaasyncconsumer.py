@@ -173,7 +173,7 @@ class PikaAsyncConsumer(object):
         """
         print("Received Message: %s" % body)
         self._message_handler(body)
-        self._channel.basic_ack(delivery_tag=method.delivery_tag)
+        #self._channel.basic_ack(delivery_tag=method.delivery_tag)
 
     def stop_consuming(self):
         """
