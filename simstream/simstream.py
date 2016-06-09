@@ -26,7 +26,7 @@ class SimStream(object):
         """
 
         def __init__(self):
-            pass
+            self.parsed = None
 
         def __call__(self, message):
             pass
@@ -85,7 +85,7 @@ class SimStream(object):
         EventMonitors, configure AMQP consumer.
         """
         self.parse_config()
-        self.setup_consumer()
+        #self.setup_consumer()
         self.setup_data_collection()
         self.setup_event_monitoring()
 
