@@ -9,27 +9,47 @@ import simtk.openmm as mm
 from simtk import unit
 from sys import stdout
 
+print("[START] Application is now running")
+
 pdb = app.PDBFile('application/input.pdb')
+print("[STATUS] Loaded model")
 forcefield = app.ForceField('amber03.xml', 'amber03_obc.xml')
+print("[STATUS] Loaded force field")
 
 system = forcefield.createSystem(pdb.topology, nonbondedMethod=app.NoCutoff, 
      constraints=None, rigidWater=False)
+print("[STATUS] Created system")
 integrator = mm.LangevinIntegrator(300*unit.kelvin, 91/unit.picoseconds, 
     1.0*unit.femtoseconds)
+print("[STATUS] Created integrator")
 
-platform = mm.Platform.getPlatformByName('CPU')
+try:
+    platform = mm.Platform.getPlatformByName('CPU')
+except Exception as e:
+    print("[ERROR] Could not load platform CPU. Running Reference")
+    platform = mm.Platform.getPlatformByName("Rference")
+
 simulation = app.Simulation(pdb.topology, system, integrator, platform)
+print("[STATUS] Set up compute platform")
 simulation.context.setPositions(pdb.positions)
+print("[STATUS] Set atomic positions")
 
-print('Minimizing...')
+print('[STATUS] Minimizing...')
 simulation.minimizeEnergy()
-print('Equilibrating...')
+print('[STATUS] Equilibrating...')
 simulation.step(100)
 
-simulation.reporters.append(app.PDBReporter('trajectory.pdb', 1000))
+simulation.reporters.append(app.DCDReporter('trajectory.dcd', 1000))
 simulation.reporters.append(app.StateDataReporter(stdout, 1000, step=True, 
     potentialEnergy=True, totalEnergy=True, temperature=True, separator='\t'))
+print("[STATUS] Set up reporters")
 
-print('Running Production...')
-simulation.step(100000)
-print('Done!')
+print('[STATUS] Running Production...')
+
+increment = 1000
+
+for i in range(0,100000,increment): 
+    print("[STATUS] Step %s" % (i))
+    simulation.step(increment)
+
+print('[END] Done!')

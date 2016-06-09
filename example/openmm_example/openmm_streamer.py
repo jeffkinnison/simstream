@@ -67,7 +67,7 @@ class LogMonitor(object):
 def get_relevant_log_lines(log_lines):
     import re
     relevant_lines = []
-    pattern = r'^\[(STATUS|ERROR)\]'
+    pattern = r'^\[(START|END|STATUS|ERROR)\]'
     for line in log_lines:
         if re.match(pattern, line) is not None:
             relevant_lines.append(line)
@@ -93,6 +93,9 @@ if __name__ == "__main__":
     trajectory = sys.argv[2]
     topology = sys.argv[3]
     reference = sys.argv[4]
+
+    open(logfile, 'a').close()
+    open(trajectory, 'a').close()
 
     log_reporter = DataReporter()
     log_reporter.add_collector("logger",
