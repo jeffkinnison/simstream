@@ -35,6 +35,9 @@ class PikaProducer(object):
         self._connection = None # RabbitMQ connection object
         self._channel = None    # RabbitMQ channel object
 
+        import random
+        self._name = random.randint(0,100)
+
     def __call__(self, data):
         """
         Publish data to the RabbitMQ server.
@@ -56,7 +59,9 @@ class PikaProducer(object):
         key -- the routing key for the new endpoint
         """
         if key not in self._routing_keys:
+            #print("Adding key %s to %s" % (key, self._name))
             self._routing_keys.append(key)
+            #print(self._routing_keys)
 
     def remove_routing_key(self, key):
         """
@@ -79,8 +84,8 @@ class PikaProducer(object):
         """
         try: # Generate a JSON string from the data
             msg = json.dumps(data)
-        except TypeError: # Generate and return an error if serialization fails
-            msg = json.dumps({"err": "Some requested data is not JSON serializable"})
+        except TypeError as e: # Generate and return an error if serialization fails
+            msg = json.dumps({"err": str(e)})
         finally:
             return msg
 
@@ -93,6 +98,7 @@ class PikaProducer(object):
         """
         if self._channel is not None: # Make sure the connection is active
             for key in self._routing_keys: # Send to all endpoints
+                #print(self._exchange, key, self._name)
                 self._channel.basic_publish(exchange = self._exchange,
                                             routing_key=key,
                                             body=data)

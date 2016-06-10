@@ -133,7 +133,7 @@ class SimStream(object):
         if self.consumer is None:
             self.setup()
         self.start_collecting()
-        self.consumer.start()
+        #self.consumer.start()
 
     def stop(self):
         """

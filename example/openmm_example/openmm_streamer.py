@@ -34,7 +34,7 @@ class LogMonitor(object):
         while line is not None:
             lines.append(line)
             line = self._next()
-
+        print(lines)
         return lines
 
     def _monitor_logfile(self):
@@ -67,7 +67,7 @@ class LogMonitor(object):
 def get_relevant_log_lines(log_lines):
     import re
     relevant_lines = []
-    pattern = r'^\[(STATUS|ERROR)\]'
+    pattern = r'^\[.+\]'
     for line in log_lines:
         if re.match(pattern, line) is not None:
             relevant_lines.append(line)
@@ -75,12 +75,12 @@ def get_relevant_log_lines(log_lines):
 
 
 def calculate_rmsd(trajectory, topology, reference):
-    import mdtraj as md
-    traj = mdtraj.load(trajectory, topology)
+    import mdtraj
+    traj = mdtraj.load(trajectory, top=topology)
     ref = mdtraj.load(reference)
     rmsd = mdtraj.rmsd(traj, ref)
-    return {"step": traj.nframes, "rmsd": rmsd[-1]}
-
+    data = {"step": str(traj.n_frames), "rmsd": str(rmsd[-1])}
+    return data
 
 settings = {}
 
@@ -94,6 +94,9 @@ if __name__ == "__main__":
     topology = sys.argv[3]
     reference = sys.argv[4]
 
+    open(logfile, 'a').close()
+    open(trajectory, 'a').close()
+
     log_reporter = DataReporter()
     log_reporter.add_collector("logger",
                                LogMonitor(logfile),
@@ -101,10 +104,10 @@ if __name__ == "__main__":
                                settings["exchange"],
                                limit=10,
                                interval=2,
-                               exchange_type=settings["exchange_type"],
+                               exchange_type="direct", # settings["exchange_type"],
                                postprocessor=get_relevant_log_lines)
 
-    log_reporter.start_streaming("logger", "openmm_log")
+    log_reporter.start_streaming("logger", "openmm.log")
 
     rmsd_reporter = DataReporter()
     rmsd_reporter.add_collector("rmsd",
@@ -113,10 +116,10 @@ if __name__ == "__main__":
                                 settings["exchange"],
                                 limit=1,
                                 interval=2,
-                                exchange_type=settings["exchange_type"],
+                                exchange_type="direct",  # settings["exchange_type"],
                                 callback_args=[trajectory, topology, reference])
 
-    rmsd_reporter.start_streaming("rmsd", "openmm_rmsd")
+    rmsd_reporter.start_streaming("rmsd", "openmm.rmsd")
 
     streamer = SimStream(config=settings, reporters={"log_reporter": log_reporter, "rmsd_reporter": rmsd_reporter})
     streamer.setup()
