@@ -5,7 +5,7 @@ settings = {}
 
 with open("../settings.json", 'r') as f:
     settings = json.load(f)
-    settings["routing_key"] = "openmm_log"
+settings["routing_key"] = "openmm.log"
 
 def print_log_line(body):
     try:
@@ -20,7 +20,7 @@ def print_log_line(body):
 
 consumer = PikaAsyncConsumer(settings["url"],
                              settings["exchange"],
-                             settings["queue"],
+                             "openmm.log", # settings["queue"],
                              message_handler=print_log_line,
                              routing_key=settings["routing_key"],
                              exchange_type=settings["exchange_type"])

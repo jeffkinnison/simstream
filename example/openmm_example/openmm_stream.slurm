@@ -7,15 +7,13 @@
 #SBATCH -t 00:10:00      # Run time (hh:mm:ss) - 1.5 hours
 #SBATCH -n 1             # Nodes to use
 
-module use "/home1/03947/tg832463/modulefiles"
-module load openmm
+#module use "/home1/03947/tg832463/modulefiles"
+#module load openmm
 
 touch test.txt
 
-python log_streamer.py test.txt &
+python openmm_streamer.py ./application/sim.out ./application/trajectory.dcd ./application/input.pdb ./application/input.pdb &
 
-while true; do
-    bash generate_logs.sh
-    sleep 5
-done
-
+cd application
+python alanine_dipeptide.py > sim.out
+sleep 5

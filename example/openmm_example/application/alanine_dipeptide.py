@@ -11,7 +11,7 @@ from sys import stdout
 
 print("[START] Application is now running")
 
-pdb = app.PDBFile('application/input.pdb')
+pdb = app.PDBFile('input.pdb')
 print("[STATUS] Loaded model")
 forcefield = app.ForceField('amber03.xml', 'amber03_obc.xml')
 print("[STATUS] Loaded force field")
@@ -27,7 +27,7 @@ try:
     platform = mm.Platform.getPlatformByName('CPU')
 except Exception as e:
     print("[ERROR] Could not load platform CPU. Running Reference")
-    platform = mm.Platform.getPlatformByName("Rference")
+    platform = mm.Platform.getPlatformByName("Reference")
 
 simulation = app.Simulation(pdb.topology, system, integrator, platform)
 print("[STATUS] Set up compute platform")
