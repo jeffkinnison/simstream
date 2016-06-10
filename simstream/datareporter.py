@@ -137,7 +137,7 @@ class DataReporter(object):
 
         try:
             self.collectors[name].deactivate()
-            self.collectors[name].stop()
+            self.collectors[name].join()
         except RuntimeError as e: # Catch deadlock
             print(e)
 

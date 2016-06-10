@@ -58,7 +58,7 @@ class DataCollector(Thread):
         self._data = []
         self._data_lock = Lock()
         self._active = False
-        self._producer = PikaProducer(rabbitmq_url, exchange, exchange_type="topic")
+        self._producer = PikaProducer(rabbitmq_url, exchange, exchange_type=exchange_type, routing_keys=[])
 
     def activate(self):
         """
@@ -96,12 +96,10 @@ class DataCollector(Thread):
             try:
                 result = self._callback(*self._callback_args)
                 result = self._postprocessor(result, *self._postprocessor_args) if self._postprocessor else result
-                print("Found the value ", result, " in ", self.name)
-                self._data_lock.acquire()
+                #print("Found the value ", result, " in ", self.name)
                 self._data.append(result)
                 if len(self._data) > self.limit:
                     self._data.pop(0)
-                self._data_lock.release()
                 self._producer(copy.copy(self._data))
 
             except Exception as e:
