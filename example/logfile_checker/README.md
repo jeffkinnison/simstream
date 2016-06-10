@@ -14,7 +14,7 @@ This example filters log file entries by starting tag and sends them to a remote
 2. `cd path/to/simstream/examples/logfile_checker`
 3. `python log_consumer.py`
 
-### Write Some Logsr
+### Write Some Logs
 1. Open a terminal
 2. `cd path/to/simstream/examples/logfile_checker`
 3. `chmod 700 generate_logs.sh`
