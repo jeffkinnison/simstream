@@ -102,6 +102,10 @@ class DataReporter(object):
         return None
 
     def run(self):
+        for collector in self.collectors:
+            if self.collectors[collector].queue is not self.queue:
+                self.collectors[collector].queue = self.queue
+        self.start_collecting()
         self._collection_event = Event()
         self._active = True
         while self._active and not self._collection_event.wait(timeout=self.interval):
