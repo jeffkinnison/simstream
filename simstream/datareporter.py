@@ -5,6 +5,7 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
 from threading import Event
+import queue
 
 from .datacollector import DataCollector
 
@@ -42,6 +43,7 @@ class DataReporter(object):
         self.producer = PikaProducer(url, exchange, exchange_type, routing_keys)
         self.collectors = {}
         self.interval = interval
+        self.queue = queue.Queue()
         for key, value in collectors:
             self.add_collector(
                 key,
@@ -89,6 +91,31 @@ class DataReporter(object):
             callback_args=callback_args,
             postprocessor_args=postprocessor_args
         )
+
+    def get_data(self):
+        while True:
+            try:
+                data = self.queue.get(block=False)
+                yield data
+            except queue.Full:
+                break
+        return None
+
+    def run(self):
+        self._collection_event = Event()
+        self._active = True
+        while self._active and not self._collection_event.wait(timeout=self.interval):
+            data = {}
+            for item in self.get_data():
+                for key in item:
+                    if key in data
+                        try:
+                            data[key].extend(item[key])
+                        except TypeError as e:
+                            data[key].append(item[key])
+                    else:
+                        data[key] = [item[key]]
+            self.send_data(data)
 
     def send_data(self, data):
         self.producer.send_data(data)
