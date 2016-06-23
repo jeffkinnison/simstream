@@ -10,8 +10,6 @@ from threading import Thread, Lock, Event
 
 import copy
 
-# TODO: Refactor into subclass of Thread
-
 class DataCollector(Thread):
     """Collects data by running user-specified routines.
 
@@ -56,9 +54,7 @@ class DataCollector(Thread):
         self._postprocessor = postprocessor
         self._postprocessor_args = postprocessor_args
         self._data = []
-        self._data_lock = Lock()
         self._active = False
-        self._producer = PikaProducer(rabbitmq_url, exchange, exchange_type=exchange_type, routing_keys=[])
 
     def activate(self):
         """
@@ -66,23 +62,11 @@ class DataCollector(Thread):
         """
         self._active = True
 
-    def add_routing_key(self, key):
-        """
-        Add a new producer endpoint.
-        """
-        self._producer.add_routing_key(key)
-
-
     def deactivate(self):
         """
         Stop collecting data.
         """
         self._active = False
-
-    def remove_routing_key(self, key):
-        self._producer.remove_routing_key(key)
-        if len(self._producer.endpoints) == 0:
-            self._producer.shutdown()
 
     def run(self):
         """
@@ -100,11 +84,9 @@ class DataCollector(Thread):
                 self._data.append(result)
                 if len(self._data) > self.limit:
                     self._data.pop(0)
-                self._producer(copy.copy(self._data))
 
             except Exception as e:
                 print("[ERROR] %s" % (e))
 
     def stop(self):
-        for key in self.producer.routing_keys:
-            self.remove_routing_key(key)
+        self.deactivate()
