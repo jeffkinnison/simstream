@@ -27,7 +27,8 @@ class DataCollector(Thread):
     remove_routing_key -- remove a streaming endpoint
     run -- collect data if active
     """
-    def __init__(self, name, callback, rabbitmq_url, exchange, exchange_type="direct", limit=250, interval=10,
+    def __init__(self, name, callback, queue, rabbitmq_url, exchange,
+                 exchange_type="direct", limit=250, interval=10,
                  postprocessor=None, callback_args=[], postprocessor_args=[]):
         """
         Arguments:
@@ -49,11 +50,11 @@ class DataCollector(Thread):
         self.name = name if name else "Unknown Resource"
         self.limit = limit
         self.interval = interval
+        self._queue = queue
         self._callback = callback
         self._callback_args = callback_args
         self._postprocessor = postprocessor
         self._postprocessor_args = postprocessor_args
-        self._data = []
         self._active = False
 
     def activate(self):
@@ -81,10 +82,7 @@ class DataCollector(Thread):
                 result = self._callback(*self._callback_args)
                 result = self._postprocessor(result, *self._postprocessor_args) if self._postprocessor else result
                 #print("Found the value ", result, " in ", self.name)
-                self._data.append(result)
-                if len(self._data) > self.limit:
-                    self._data.pop(0)
-
+                self._queue.put(result)
             except Exception as e:
                 print("[ERROR] %s" % (e))
 
