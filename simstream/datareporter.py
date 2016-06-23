@@ -4,11 +4,7 @@ Utilties for collecting system data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
-# TODO: Refactor to iterate over producers, not collectors. Collectors should
-#       execute concurrently.
-# TODO: Add method to deactivate reporter
-
-from threading import Thread, Event
+from threading import Event
 
 from .datacollector import DataCollector
 
@@ -41,9 +37,11 @@ class DataReporter(object):
     stop_collector -- stop a running DataCollector
     """
 
-    def __init__(self, collectors={}):
+    def __init__(self, url, exchange, exchange_type="direct", routing_keys=[], collectors={}, interval=60):
         super(DataReporter, self).__init__()
+        self.producer = PikaProducer(url, exchange, exchange_type, routing_keys)
         self.collectors = {}
+        self.interval = interval
         for key, value in collectors:
             self.add_collector(
                 key,
@@ -91,6 +89,9 @@ class DataReporter(object):
             callback_args=callback_args,
             postprocessor_args=postprocessor_args
         )
+
+    def send_data(self, data):
+        self.producer.send_data(data)
 
     def start_collecting(self):
         """
@@ -142,18 +143,16 @@ class DataReporter(object):
             print(e)
 
 
-    def start_streaming(self, collector_name, routing_key):
+    def start_streaming(self, routing_key):
         """
-        Begin streaming data from a collector to a particular recipient.
+        Begin streaming data to a particular recipient.
 
         Arguments:
         routing_key -- the routing key to reach the intended recipient
         """
-        if collector_name not in self.collectors: # Make sure collector exists
-            raise CollectorDoesNotExistException
-        self.collectors[collector_name].add_routing_key(routing_key)
+        self.producer.add_routing_key(routing_key)
 
-    def stop_streaming(self, collector_name, routing_key):
+    def stop_streaming(self, routing_key):
         """
         Stop a particular stream.
 
@@ -166,4 +165,4 @@ class DataReporter(object):
         ValueError if the producer is removed by another call to this method
                    after the for loop begins
         """
-        pass
+        self.producer.remove_routing_key(routing_key)
