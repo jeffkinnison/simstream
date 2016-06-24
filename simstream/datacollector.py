@@ -4,9 +4,7 @@ Utilties for collecting system data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
-from .pikaproducer import PikaProducer
-
-from threading import Thread, Lock, Event
+from threading import Thread, Event
 
 import copy
 
@@ -27,8 +25,7 @@ class DataCollector(Thread):
     remove_routing_key -- remove a streaming endpoint
     run -- collect data if active
     """
-    def __init__(self, name, callback, queue, rabbitmq_url, exchange,
-                 exchange_type="direct", limit=250, interval=10,
+    def __init__(self, name, callback, limit=250, interval=10,
                  postprocessor=None, callback_args=[], postprocessor_args=[]):
         """
         Arguments:
@@ -50,7 +47,7 @@ class DataCollector(Thread):
         self.name = name if name else "Unknown Resource"
         self.limit = limit
         self.interval = interval
-        self._queue = queue
+        self.queue = None
         self._callback = callback
         self._callback_args = callback_args
         self._postprocessor = postprocessor
@@ -77,14 +74,43 @@ class DataCollector(Thread):
         known beforehand.
         """
         self._collection_event = Event()
+        self.activate()
         while self._active and not self._collection_event.wait(timeout=self.interval):
             try:
+                print("Collecting")
                 result = self._callback(*self._callback_args)
                 result = self._postprocessor(result, *self._postprocessor_args) if self._postprocessor else result
                 #print("Found the value ", result, " in ", self.name)
-                self._queue.put(result)
+                data = {self.name: result}
+                self._queue.put(data)
             except Exception as e:
                 print("[ERROR] %s" % (e))
 
+    def set_queue(self, queue):
+        self._queue = queue
+
     def stop(self):
         self.deactivate()
+
+if __name__ == "__main__":
+    import resource
+    import time
+    import queue
+
+    def get_mem():
+        data = {"x": time.time(), "y": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}
+        return data
+
+    q = queue.Queue()
+
+    collector = DataCollector("rss", get_mem, interval=1)
+    collector.set_queue(q)
+    collector.start()
+
+    time.sleep(10)
+
+    collector.stop()
+    collector.join()
+
+    while not q.empty():
+        print(q.get(block=False))
