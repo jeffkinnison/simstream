@@ -4,10 +4,11 @@ Utilties for collecting system data.
 Author: Jeff Kinnison (jkinniso@nd.edu)
 """
 
-from threading import Event
+from threading import Thread, Event
 import queue
 
-from .datacollector import DataCollector
+from datacollector import DataCollector
+from pikaproducer import PikaProducer
 
 
 class CollectorExistsException(Exception):
@@ -20,7 +21,7 @@ class CollectorDoesNotExistException(Exception):
     pass
 
 
-class DataReporter(object):
+class DataReporter(Thread):
     """Manages collecting specified data.
 
     Subclass of threading.Thread that modifies Thread.join() and Thread.run()
@@ -38,26 +39,20 @@ class DataReporter(object):
     stop_collector -- stop a running DataCollector
     """
 
-    def __init__(self, url, exchange, exchange_type="direct", routing_keys=[], collectors={}, interval=60):
+    def __init__(self, url, exchange, exchange_type="direct", routing_keys=[], collectors=[], interval=60):
         super(DataReporter, self).__init__()
         self.producer = PikaProducer(url, exchange, exchange_type, routing_keys)
         self.collectors = {}
         self.interval = interval
         self.queue = queue.Queue()
-        for key, value in collectors:
-            self.add_collector(
-                key,
-                value.limit,
-                value.callback,
-                value.url,
-                value.exchange,
-                value.postprocessor,
-                value.callback_args,
-                value.postprocessor_args
-            )
+        for collector in collectors:
+            self.add_collector(**collector)
 
-    def add_collector(self, name, callback, rabbitmq_url, exchange, limit=250, interval=10, postprocessor=None,
-                      exchange_type="direct", callback_args=[], postprocessor_args=[]):
+    def activate(self):
+        self._active = True
+
+    def add_collector(self, name="unknown", callback=lambda x: x, limit=250, interval=10, postprocessor=None,
+                      callback_args=[], postprocessor_args=[]):
         """Add a new collector.
 
         Arguments:
@@ -80,31 +75,31 @@ class DataReporter(object):
             raise CollectorExistsException
 
         self.collectors[name] = DataCollector(
-            name,
-            callback,
-            rabbitmq_url,
-            exchange,
+            name=name,
+            callback=callback,
             limit=limit,
             interval=interval,
             postprocessor=postprocessor,
-            exchange_type=exchange_type,
             callback_args=callback_args,
             postprocessor_args=postprocessor_args
         )
+
+    def deactivate(self):
+        self._active = False
 
     def get_data(self):
         while True:
             try:
                 data = self.queue.get(block=False)
                 yield data
-            except queue.Full:
+            except queue.Empty:
                 break
-        return None
+        return
 
     def run(self):
         for collector in self.collectors:
             if self.collectors[collector].queue is not self.queue:
-                self.collectors[collector].queue = self.queue
+                self.collectors[collector].set_queue(self.queue)
         self.start_collecting()
         self._collection_event = Event()
         self._active = True
@@ -112,7 +107,7 @@ class DataReporter(object):
             data = {}
             for item in self.get_data():
                 for key in item:
-                    if key in data
+                    if key in data:
                         try:
                             data[key].extend(item[key])
                         except TypeError as e:
@@ -120,6 +115,7 @@ class DataReporter(object):
                     else:
                         data[key] = [item[key]]
             self.send_data(data)
+            print(data)
 
     def send_data(self, data):
         self.producer.send_data(data)
@@ -148,6 +144,11 @@ class DataReporter(object):
             print("Error starting collector ", name)
             print(e)
 
+    def stop(self):
+        self.deactivate()
+        self.stop_collecting()
+        self.producer.shutdown()
+
     def stop_collecting(self):
         """
         Stop all collectors.
@@ -168,7 +169,7 @@ class DataReporter(object):
             raise CollectorDoesNotExistException
 
         try:
-            self.collectors[name].deactivate()
+            self.collectors[name].stop()
             self.collectors[name].join()
         except RuntimeError as e: # Catch deadlock
             print(e)
@@ -197,3 +198,44 @@ class DataReporter(object):
                    after the for loop begins
         """
         self.producer.remove_routing_key(routing_key)
+
+if __name__ == "__main__":
+    import resource
+    import sys
+    import time
+
+    q = queue.Queue()
+
+    def get_mem():
+        data = {"x": time.time(), "y": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}
+        return data
+
+    def get_page_faults():
+        data = {"x": time.time(), "y": resource.getrusage(resource.RUSAGE_SELF).ru_minflt}
+        return data
+
+    collectors = [
+        {
+            "name": "rss",
+            "callback": get_mem,
+            "interval": 2
+        },
+        {
+            "name": "flt",
+            "callback": get_page_faults,
+            "interval": 3
+        }
+    ]
+
+    reporter = DataReporter("amqp://guest:guest@localhost:5672",
+                            "test",
+                            routing_keys=['#'],
+                            collectors=collectors,
+                            interval=1)
+
+    reporter.start()
+
+    time.sleep(15)
+
+    reporter.stop()
+    reporter.join()
