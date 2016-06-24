@@ -81,12 +81,12 @@ class DataCollector(Thread):
                 result = self._postprocessor(result, *self._postprocessor_args) if self._postprocessor else result
                 #print("Found the value ", result, " in ", self.name)
                 data = {self.name: result}
-                self._queue.put(data)
+                self.queue.put(data)
             except Exception as e:
                 print("[ERROR] %s" % (e))
 
     def set_queue(self, queue):
-        self._queue = queue
+        self.queue = queue
 
     def stop(self):
         self.deactivate()

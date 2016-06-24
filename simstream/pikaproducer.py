@@ -45,6 +45,7 @@ class PikaProducer(object):
         Arguments:
         data -- JSON serializable data to send
         """
+        print("Sending data")
         if self._connection is None: # Start the connection if it is inactive
             self.start()
         else: # Serialize and send the data
@@ -87,6 +88,7 @@ class PikaProducer(object):
         except TypeError as e: # Generate and return an error if serialization fails
             msg = json.dumps({"err": str(e)})
         finally:
+            print(msg)
             return msg
 
     def send_data(self, data):
@@ -98,7 +100,7 @@ class PikaProducer(object):
         """
         if self._channel is not None: # Make sure the connection is active
             for key in self._routing_keys: # Send to all endpoints
-                #print(self._exchange, key, self._name)
+                print(self._exchange, key, self._name)
                 self._channel.basic_publish(exchange = self._exchange,
                                             routing_key=key,
                                             body=data)

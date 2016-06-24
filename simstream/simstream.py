@@ -1,10 +1,10 @@
 import pika
 
-from pikaasyncconsumer import PikaAsyncConsumer
-from datacollector import DataCollector
-from datareporter import DataReporter
-from eventhandler import EventHandler
-from eventmonitor import EventMonitor
+from .pikaasyncconsumer import PikaAsyncConsumer
+from .datacollector import DataCollector
+from .datareporter import DataReporter
+from .eventhandler import EventHandler
+from .eventmonitor import EventMonitor
 
 
 class ReporterExistsException(Exception):
@@ -77,7 +77,7 @@ class SimStream(object):
         Begin collecting data and monitoring for events.
         """
         for reporter in self.reporters:
-            self.reporters[reporter].start_collecting()
+            self.reporters[reporter].start()
 
     def setup(self):
         """
@@ -142,6 +142,10 @@ class SimStream(object):
         self.consumer.stop()
         self.stop_collecting()
 
+    def stop_collecting(self):
+        for key in self.reporters:
+            self.reporters[key].stop()
+            self.reporters[key].join()
 
 if __name__ == "__main__":
     def print_message(message):

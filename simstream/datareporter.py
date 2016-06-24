@@ -7,8 +7,8 @@ Author: Jeff Kinnison (jkinniso@nd.edu)
 from threading import Thread, Event
 import queue
 
-from datacollector import DataCollector
-from pikaproducer import PikaProducer
+from .datacollector import DataCollector
+from .pikaproducer import PikaProducer
 
 
 class CollectorExistsException(Exception):
@@ -118,7 +118,7 @@ class DataReporter(Thread):
             print(data)
 
     def send_data(self, data):
-        self.producer.send_data(data)
+        self.producer(data)
 
     def start_collecting(self):
         """
