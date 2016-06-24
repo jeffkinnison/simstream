@@ -77,7 +77,6 @@ class DataCollector(Thread):
         self.activate()
         while self._active and not self._collection_event.wait(timeout=self.interval):
             try:
-                print("Collecting")
                 result = self._callback(*self._callback_args)
                 result = self._postprocessor(result, *self._postprocessor_args) if self._postprocessor else result
                 #print("Found the value ", result, " in ", self.name)
