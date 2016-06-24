@@ -97,31 +97,26 @@ if __name__ == "__main__":
     open(logfile, 'a').close()
     open(trajectory, 'a').close()
 
-    log_reporter = DataReporter()
-    log_reporter.add_collector("logger",
-                               LogMonitor(logfile),
-                               settings["url"],
-                               settings["exchange"],
-                               limit=10,
-                               interval=2,
-                               exchange_type="direct", # settings["exchange_type"],
-                               postprocessor=get_relevant_log_lines)
+    collectors = [
+        {
+            "name": "logs",
+            "callback": LogMonitor(logfile),
+            "limit": 10,
+            "interval": 2,
+            "postprocessor": get_relevant_log_lines
+        },
+        {
+            "name": "rmsd",
+            "callback": calculate_rmsd,
+            "limit": 1,
+            "interval": 2,
+            "callback_args": [trajectory, topology, reference]
+        }
+    ]
 
-    log_reporter.start_streaming("logger", "openmm.log")
+    reporter = DataReporter("amqp://airavata:airavata@gw56.iu.xsede.org:5672/messaging", "wstest", routing_keys=['experiment'], exchange_type="topic", collectors=collectors, interval=5)
 
-    rmsd_reporter = DataReporter()
-    rmsd_reporter.add_collector("rmsd",
-                                calculate_rmsd,
-                                settings["url"],
-                                settings["exchange"],
-                                limit=1,
-                                interval=2,
-                                exchange_type="direct",  # settings["exchange_type"],
-                                callback_args=[trajectory, topology, reference])
-
-    rmsd_reporter.start_streaming("rmsd", "openmm.rmsd")
-
-    streamer = SimStream(config=settings, reporters={"log_reporter": log_reporter, "rmsd_reporter": rmsd_reporter})
+    streamer = SimStream(config=settings, reporters={"sim_reporter": reporter})
     streamer.setup()
 
     try:
